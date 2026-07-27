@@ -18,11 +18,13 @@ CHUNKS_FILE = Path("data/chunks/selected_chunks_fixed.csv")
 OUTPUT_FILE = Path("data/training/generated_pairs.csv")
 LOG_FILE = Path("logs/question_generation.log")
 
-MODEL_NAME = "gemini-flash-latest"
+# MODEL_NAME = "gemini-flash-latest"
+MODEL_NAME = "gemini-3.1-flash-lite"
+
 
 SAVE_EVERY = 1
 MAX_RETRIES = 2
-SLEEP_BETWEEN_REQUESTS = 15
+SLEEP_BETWEEN_REQUESTS = 10
 BATCH_SIZE = 20
 
 PROMPT_TEMPLATE = """
@@ -60,7 +62,7 @@ Rules:
 
 1. Factual/decision question — विशिष्ट कृषि तथ्य पर आधारित (किस्म, मात्रा, विधि, रोग/कीट पहचान), narrow और specific।
 2. Procedural question — "कैसे / कब / किस तरीके से" कोई विशेष कार्य किया जाए।
-3. Semantic/alternate-phrasing question — वही मुख्य जानकारी अलग शब्दों में, फिर भी उतनी ही specific।
+3. Semantic/alternate-phrasing/Natural farmer search question — वही मुख्य जानकारी अलग शब्दों में, फिर भी उतनी ही specific।
 
 Topic/Crop Mention Rule:
 - हर प्रश्न में मुख्य फसल/पशु/कीट/रोग/तकनीक का नाम अवश्य शामिल करें।
@@ -118,7 +120,6 @@ Passages:
 
 {chunks}
 """
-
 # ============================================================
 # SETUP
 # ============================================================
@@ -221,7 +222,8 @@ def call_gemini(prompt):
             text = text.replace("```", "")
             text = text.strip()
 
-            result = json.loads(text)
+            decoder = json.JSONDecoder()
+            result, end = decoder.raw_decode(text)
 
             if not isinstance(result, list):
                 raise Exception("Output not list")
@@ -257,7 +259,7 @@ def call_gemini(prompt):
 print("=" * 60)
 print("Loading chunks...")
 
-df = pd.read_csv(CHUNKS_FILE).head(340)
+df = pd.read_csv(CHUNKS_FILE)
 
 processed = load_processed()
 
@@ -451,4 +453,3 @@ print("=" * 60)
 print("Question generation completed.")
 print(f"Saved to : {OUTPUT_FILE}")
 logging.info("Completed successfully.") 
-

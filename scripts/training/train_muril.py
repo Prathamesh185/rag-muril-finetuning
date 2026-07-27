@@ -13,11 +13,11 @@ from sentence_transformers import (
     SentenceTransformer,
 )
 
-from sentence_transformers.losses import (
+from sentence_transformers.sentence_transformer.losses import (
     MultipleNegativesRankingLoss,
 )
 
-from sentence_transformers.training_args import (
+from sentence_transformers.sentence_transformer.training_args import (
     BatchSamplers,
 )
 
@@ -52,9 +52,9 @@ WARMUP_RATIO = 0.10  # Training starts gradually
 
 MAX_SEQ_LENGTH = 256 # How much text can MuRIL read at once
 
-SAVE_STEPS = 500     # save progress regularly
+SAVE_STEPS = 200     # save progress regularly
 
-EVAL_STEPS = 500     # Evaluate model performance every 500 training steps
+EVAL_STEPS = 200     # Evaluate model performance every 500 training steps
 
 LOGGING_STEPS = 100  # Log training progress every 100 steps
 
@@ -212,7 +212,7 @@ from sentence_transformers import (
     SentenceTransformerTrainingArguments,
 )
 
-from sentence_transformers.evaluation import (
+from sentence_transformers.sentence_transformer.evaluation import (
     InformationRetrievalEvaluator,
 )
 
@@ -264,9 +264,7 @@ training_args = SentenceTransformerTrainingArguments(
     # ------------------------------------------------------
 
     output_dir=OUTPUT_DIR,
-
-    overwrite_output_dir=False,
-
+    
     # ------------------------------------------------------
     # Epochs
     # ------------------------------------------------------
@@ -289,7 +287,7 @@ training_args = SentenceTransformerTrainingArguments(
 
     weight_decay=WEIGHT_DECAY,
 
-    warmup_ratio=WARMUP_RATIO,
+    warmup_steps=0.10,
 
     # ------------------------------------------------------
     # Mixed precision
@@ -327,7 +325,7 @@ training_args = SentenceTransformerTrainingArguments(
 
     # InformationRetrievalEvaluator reports retrieval metrics;
     # we'll use MRR@10 to choose the best checkpoint.
-    metric_for_best_model="validation_mrr@10",
+    metric_for_best_model="eval_validation_cosine_mrr@10",
 
     greater_is_better=True,
 
