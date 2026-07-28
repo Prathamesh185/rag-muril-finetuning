@@ -1,6 +1,6 @@
 # 🌾 Agriculture-Aware Multilingual RAG using Fine-Tuned MuRIL
 
-A research project that improves multilingual agricultural **Retrieval-Augmented Generation (RAG)** by fine-tuning the **MuRIL** sentence encoder for domain-specific semantic retrieval. The project builds an end-to-end pipeline covering data collection, dataset generation, encoder fine-tuning, retrieval evaluation, and RAG deployment.
+A research project that improves multilingual agricultural **Retrieval-Augmented Generation (RAG)** by fine-tuning the **MuRIL** sentence encoder to retrieve more relevant agricultural information in Indian languages. The project builds an end-to-end pipeline covering data collection, dataset generation, encoder fine-tuning, retrieval evaluation, and RAG deployment.
 
 ---
 
