@@ -1,44 +1,33 @@
 # 🌾 Agriculture-Aware Multilingual RAG using Fine-Tuned MuRIL
 
-A research project that improves multilingual agricultural **Retrieval-Augmented Generation (RAG)** by fine-tuning the **MuRIL** sentence encoder to retrieve more relevant agricultural information in Indian languages. The project builds an end-to-end pipeline covering data collection, dataset generation, encoder fine-tuning, retrieval evaluation, and RAG deployment.
+A research project that improves multilingual agricultural **Retrieval-Augmented Generation (RAG)** by fine-tuning Google's **MuRIL** sentence encoder for agriculture-specific semantic retrieval in Indian languages.
+
+The project presents an end-to-end pipeline covering **data collection, dataset generation, sentence encoder fine-tuning, retrieval evaluation, and RAG deployment.**
 
 ---
 
 ## 🚀 Overview
 
-General-purpose multilingual embedding models often struggle with domain-specific retrieval tasks. This project addresses that challenge by fine-tuning **MuRIL** on Hindi agriculture question–passage pairs generated from government agricultural resources.
+Large Language Models (LLMs) such as ChatGPT do not automatically have access to domain-specific knowledge sources, including agricultural manuals, reports, and advisory documents published by organizations such as **ICAR (Indian Council of Agricultural Research)**. As a result, they may generate less relevant responses to specialized agriculture-related queries.
 
-The fine-tuned encoder is integrated into a complete **Retrieval-Augmented Generation (RAG)** pipeline to improve retrieval quality for agriculture-related queries in Indian languages.
+**Retrieval-Augmented Generation (RAG)** addresses this limitation by retrieving relevant documents before generating an answer. However, the effectiveness of a RAG system depends heavily on the quality of its retrieval component.
+
+This project fine-tunes **MuRIL**, a multilingual sentence encoder for Indian languages, on agriculture-specific question–passage pairs constructed from publicly available government agricultural documents. The fine-tuned encoder is then integrated into an end-to-end multilingual RAG pipeline to improve semantic retrieval for agriculture-related question answering.
 
 ---
 
 ## ✨ Highlights
 
 - 🌾 Agriculture-specific multilingual retrieval
-- 🤖 Fine-Tuned MuRIL sentence encoder
+- 🤖 Fine-tuned MuRIL sentence encoder
 - 🧠 Multiple Negatives Ranking Loss (MNRL)
 - 🎯 Hard Negative Mining
 - 🔥 Triplet Loss fine-tuning
 - 📚 FAISS semantic vector search
 - ⛓️ LangChain-based RAG pipeline
-- 💬 Gradio web application
-- 📊 Retrieval evaluation using standard IR metrics
-
----
-
-## 📌 Features
-
-- Fine-tuned MuRIL sentence embeddings
-- Hindi agriculture retrieval dataset
-- Question generation pipeline
-- Hard negative mining
-- Triplet dataset creation
-- FAISS vector database
-- Semantic document retrieval
-- LangChain RAG pipeline
-- Google Gemini integration
-- Interactive Gradio interface
-- Retrieval performance evaluation
+- 💬 Google Gemini integration
+- 🖥️ Gradio web application
+- 📊 Retrieval evaluation using standard Information Retrieval (IR) metrics
 
 ---
 
@@ -78,12 +67,76 @@ Government Agriculture Documents
      Semantic Retrieval
                 │
                 ▼
-    Retrieval-Augmented
-        Generation (RAG)
+ Retrieval-Augmented Generation
                 │
                 ▼
-     Gradio Web Interface
+     Gradio Web Application
 ```
+
+---
+
+## 📊 Evaluation
+
+The project compares retrieval performance between:
+
+- **Base MuRIL**
+- **Fine-Tuned MuRIL**
+
+using identical evaluation settings and the same held-out test dataset.
+
+### Evaluation Metrics
+
+- Accuracy@1
+- Accuracy@3
+- Accuracy@5
+- Accuracy@10
+- Recall@1
+- Recall@3
+- Recall@5
+- Recall@10
+- Precision@1
+- Precision@3
+- Precision@5
+- Precision@10
+- MRR@10
+- nDCG@10
+- MAP@10
+
+> Final evaluation results and comparison tables will be added after all experiments are completed.
+
+| Metric | Base MuRIL | Fine-Tuned MuRIL |
+|---------|------------|------------------|
+| Accuracy@1 | - | - |
+| Accuracy@5 | - | - |
+| Recall@10 | - | - |
+| MRR@10 | - | - |
+| nDCG@10 | - | - |
+| MAP@10 | - | - |
+
+---
+
+## 🌟 Contributions
+
+- Fine-tuned MuRIL for agriculture-specific semantic retrieval.
+- Built a multilingual agriculture retrieval dataset.
+- Improved document retrieval for agriculture RAG systems.
+- Evaluated retrieval performance using standard IR metrics.
+- Developed an end-to-end multilingual agriculture question-answering pipeline.
+
+---
+
+## 🚜 Applications
+
+The fine-tuned encoder can be integrated into:
+
+- Government agriculture portals
+- ICAR knowledge systems
+- Farmer assistance chatbots
+- Agriculture helplines
+- University agriculture knowledge bases
+- NGOs
+- Private agriculture companies
+- Agriculture RAG applications
 
 ---
 
@@ -95,8 +148,15 @@ Government Agriculture Documents
 - PyTorch
 - Hugging Face Transformers
 - Sentence Transformers
-- MuRIL
+- Google MuRIL
 - FAISS
+
+### LLM
+
+- Google Gemini API
+
+### Frameworks
+
 - LangChain
 - Gradio
 
@@ -105,17 +165,13 @@ Government Agriculture Documents
 - Pandas
 - NumPy
 
-### LLM
-
-- Google Gemini API
-
 ### Development Tools
 
 - Git
 - GitHub
 - VS Code
-- Google Colab
 - Jupyter Notebook
+- Kaggle
 
 ---
 
@@ -125,12 +181,8 @@ Government Agriculture Documents
 project/
 │
 ├── app.py
-├── config.py
-├── data.py
-├── llm.py
-├── pdf_loader.py
-├── retriever.py
 ├── requirements.txt
+├── README.md
 │
 ├── data/
 │   ├── raw/
@@ -140,84 +192,47 @@ project/
 │   └── training/
 │
 ├── scripts/
+│   ├── preprocessing/
+│   ├── dataset/
+│   ├── training/
+│   └── evaluation/
 │
 ├── models/
-│
 ├── evaluation/
-│
-└── README.md
+├── logs/
+└── outputs/
 ```
-
----
-
-## 📊 Evaluation
-
-The retrieval system is evaluated using standard Information Retrieval (IR) metrics.
-
-### Metrics
-
-- Recall@1
-- Recall@5
-- Recall@10
-- MRR@10
-- nDCG@10
-- MAP@10
-
-### Model Comparison
-
-The project compares retrieval performance of:
-
-- Base MuRIL
-- Fine-Tuned MuRIL
-- Triplet Fine-Tuned MuRIL
-
-using the same held-out test dataset.
-
-> **Note:** Final evaluation scores and comparison tables will be added after completion of experiments.
-
----
-
-## 📁 Dataset
-
-The training dataset is constructed from publicly available government agriculture resources.
-
-Pipeline:
-
-- Government agriculture documents
-- Text extraction
-- Cleaning and preprocessing
-- Semantic chunking
-- Automatic question generation
-- Hard negative mining
-- Question–passage triplet creation
-
-The resulting dataset is used to fine-tune MuRIL for agriculture-specific semantic retrieval.
-
----
-
-## 🔬 Research Contribution
-
-This project contributes to multilingual agricultural retrieval by:
-
-- Fine-tuning MuRIL on agriculture question–passage pairs
-- Improving semantic retrieval for Retrieval-Augmented Generation
-- Comparing retrieval performance before and after fine-tuning
-- Building an end-to-end multilingual RAG pipeline
-- Evaluating retrieval quality using standard IR metrics
 
 ---
 
 ## 🎯 Future Work
 
 - Support additional Indian languages
-- Expand the agriculture corpus
-- Explore improved hard negative mining techniques
+- Improve hard negative mining
+- Fine-tune using Triplet Loss
 - Compare with newer multilingual embedding models
-- Release trained embeddings on Hugging Face
-- Deploy the application for public use
+- Release the trained model on Hugging Face
+- Deploy the application publicly
 
 ---
 
 ## 📄 License
 
 This project is developed for academic and research purposes.
+
+---
+
+## 👨‍💻 Author
+
+**Prathamesh Patil**
+
+Computer Science Engineering Student
+
+### Research Interests
+
+- Retrieval-Augmented Generation (RAG)
+- Sentence Embeddings
+- Information Retrieval
+- Natural Language Processing (NLP)
+- Large Language Models (LLMs)
+- Multilingual AI
