@@ -221,18 +221,3 @@ project/
 This project is developed for academic and research purposes.
 
 ---
-
-## 👨‍💻 Author
-
-**Prathamesh Patil**
-
-Computer Science Engineering Student
-
-### Research Interests
-
-- Retrieval-Augmented Generation (RAG)
-- Sentence Embeddings
-- Information Retrieval
-- Natural Language Processing (NLP)
-- Large Language Models (LLMs)
-- Multilingual AI
