@@ -8,3 +8,4 @@ data/training/
 data/chunks/
 data/scraped/
 logs/
+models/

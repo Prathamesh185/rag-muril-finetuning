@@ -41,7 +41,7 @@ SEED = 42
 
 NUM_EPOCHS = 3
 
-TRAIN_BATCH_SIZE = 32
+TRAIN_BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 64
 
 LEARNING_RATE = 2e-5  # Rate at which model should learn (how much the model updates its weights after each step)
