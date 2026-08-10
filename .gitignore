@@ -3,9 +3,11 @@ venv/
 __pycache__/
 *.pyc
 .env
+
 data/cleaned/
 data/training/
 data/chunks/
 data/scraped/
 logs/
+data/
 models/
