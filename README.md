@@ -105,19 +105,76 @@ The project compares retrieval performance between:
 
 using identical evaluation settings and the same held-out test dataset.
 
-### Evaluation Metrics
+## 📊 Evaluation
 
-> Final evaluation results and comparison tables will be added after all experiments are completed.
+The project compares retrieval performance between:
+
+- **Base MuRIL**
+- **Fine-Tuned MuRIL**
+
+Both models are evaluated using the same held-out V2 test set and the same unique-passage retrieval corpus.
+
+### Test Setup
+
+- Test questions: **1,980**
+- Unique passages: **744**
+- Similarity function: **Cosine Similarity**
+- Retrieval depth: **Top-10**
+- Evaluation corpus built using unique `chunk_id` values
+
+### Final Retrieval Results
 
 | Metric | Base MuRIL | Fine-Tuned MuRIL |
-|---------|------------|------------------|
-| Accuracy@1 | - | - |
-| Accuracy@5 | - | - |
-| Recall@10 | - | - |
-| MRR@10 | - | - |
-| nDCG@10 | - | - |
-| MAP@10 | - | - |
+|---|---:|---:|
+| Accuracy@1 | 21.46% | **70.10%** |
+| Accuracy@5 | 39.39% | **93.18%** |
+| Recall@10 | 48.84% | **96.62%** |
+| MRR@10 | 0.2919 | **0.7999** |
+| nDCG@10 | 0.3383 | **0.8410** |
+| MAP@100 | 0.3063 | **0.8013** |
 
+### Improvement
+
+- **Accuracy@1:** +48.64 percentage points
+- **Recall@10:** +47.78 percentage points
+- **MRR@10:** +0.5081
+- **nDCG@10:** +0.5027
+- **MAP@100:** +0.4950
+
+The fine-tuned MuRIL model shows a substantial improvement over Base MuRIL for Hindi agriculture semantic retrieval.
+---
+
+## ⚙️ Fine-Tuning Configuration
+
+| Setting | Value |
+|---|---|
+| Base model | `google/muril-base-cased` |
+| Training objective | Multiple Negatives Ranking Loss (MNRL) |
+| Epochs | 3 |
+| Batch size | 32 |
+| Learning rate | `2e-5` |
+| Max sequence length | 256 |
+| Embedding dimension | 768 |
+| Training pairs | 16,292 |
+| Validation pairs | 1,869 |
+---
+
+## 🧹 Dataset Validation
+
+Before training, the dataset was checked for:
+
+- exact and near-duplicate documents
+- duplicate and near-duplicate questions
+- question-to-passage copying
+- train/validation/test leakage
+- duplicate-document grouping across splits
+
+Final V2 dataset:
+
+- **20,141** question-passage pairs
+- **7,379** unique chunks
+- **1,814** documents
+- **1,770** split groups
 ---
 
 ## 🌟 Contributions
