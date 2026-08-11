@@ -27,6 +27,8 @@ CANDIDATE_FILE = (
 MODEL_PATH = "models/base_muril"
 
 SEMANTIC_THRESHOLD = 0.95
+LEXICAL_THRESHOLD = 0.80
+LENGTH_RATIO_THRESHOLD = 0.70
 
 TOP_K = 5
 
@@ -258,13 +260,7 @@ scores, indices = index.search(
 # ==========================================================
 
 def lexical_similarity(text1, text2):
-
-    return SequenceMatcher(
-        None,
-        normalize_text(text1),
-        normalize_text(text2),
-    ).ratio()
-
+    return SequenceMatcher(None, text1, text2).ratio()
 
 # ==========================================================
 # BUILD CANDIDATE LIST
@@ -353,69 +349,56 @@ for i in range(
             )
         )
 
+        text_a = source_row["positive"]
+        text_b = target_row["positive"]
+
+        length_ratio = (
+            min(len(text_a), len(text_b))
+            / max(len(text_a), len(text_b))
+        )
+
+        # Keep only strong near-duplicate candidates
+        if lexical_score < LEXICAL_THRESHOLD:
+            continue
+
+        if length_ratio < LENGTH_RATIO_THRESHOLD:
+            continue 
+
+        
 
         candidates.append(
-            {
-                "semantic_similarity":
-                    round(
-                        semantic_score,
-                        4,
-                    ),
+    {
+        "semantic_similarity": round(
+            semantic_score,
+            4,
+        ),
 
-                "lexical_similarity":
-                    round(
-                        lexical_score,
-                        4,
-                    ),
+        "lexical_similarity": round(
+            lexical_score,
+            4,
+        ),
 
-                "document_a":
-                    source_row[
-                        "document_id"
-                    ],
+        "length_ratio": round(
+            length_ratio,
+            4,
+        ),
 
-                "document_b":
-                    target_row[
-                        "document_id"
-                    ],
+        "document_a": source_row["document_id"],
+        "document_b": target_row["document_id"],
 
-                "chunk_a":
-                    source_row[
-                        "chunk_id"
-                    ],
+        "chunk_a": source_row["chunk_id"],
+        "chunk_b": target_row["chunk_id"],
 
-                "chunk_b":
-                    target_row[
-                        "chunk_id"
-                    ],
+        "title_a": source_row["title"],
+        "title_b": target_row["title"],
 
-                "title_a":
-                    source_row[
-                        "title"
-                    ],
+        "passage_a": source_row["positive"],
+        "passage_b": target_row["positive"],
 
-                "title_b":
-                    target_row[
-                        "title"
-                    ],
-
-                "passage_a":
-                    source_row[
-                        "positive"
-                    ],
-
-                "passage_b":
-                    target_row[
-                        "positive"
-                    ],
-
-                # Fill this manually
-                "confirmed_duplicate":
-                    "",
-
-                "review_note":
-                    "",
-            }
-        )
+        "confirmed_duplicate": "",
+        "review_note": "",
+    }
+)
 
 
 # ==========================================================
