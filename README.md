@@ -94,17 +94,6 @@ Government Agriculture Documents
      Gradio Web Application
 ```
 
----
-
-## 📊 Evaluation
-
-The project compares retrieval performance between:
-
-- **Base MuRIL**
-- **Fine-Tuned MuRIL**
-
-using identical evaluation settings and the same held-out test dataset.
-
 ## 📊 Evaluation
 
 The project compares retrieval performance between:
@@ -142,6 +131,7 @@ Both models are evaluated using the same held-out V2 test set and the same uniqu
 - **MAP@100:** +0.4950
 
 The fine-tuned MuRIL model shows a substantial improvement over Base MuRIL for Hindi agriculture semantic retrieval.
+
 ---
 
 ## ⚙️ Fine-Tuning Configuration
