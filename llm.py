@@ -39,7 +39,7 @@ def local_llm(prompt):
 def gemini_llm(prompt):
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.1-flash-lite",
         contents=prompt,
     )
 
