@@ -1,0 +1,17 @@
+{
+    "finetuned_muril_cosine_accuracy@1": 0.701010101010101,
+    "finetuned_muril_cosine_accuracy@3": 0.8803030303030303,
+    "finetuned_muril_cosine_accuracy@5": 0.9318181818181818,
+    "finetuned_muril_cosine_accuracy@10": 0.9661616161616161,
+    "finetuned_muril_cosine_precision@1": 0.701010101010101,
+    "finetuned_muril_cosine_precision@3": 0.29343434343434344,
+    "finetuned_muril_cosine_precision@5": 0.1863636363636364,
+    "finetuned_muril_cosine_precision@10": 0.09661616161616163,
+    "finetuned_muril_cosine_recall@1": 0.701010101010101,
+    "finetuned_muril_cosine_recall@3": 0.8803030303030303,
+    "finetuned_muril_cosine_recall@5": 0.9318181818181818,
+    "finetuned_muril_cosine_recall@10": 0.9661616161616161,
+    "finetuned_muril_cosine_ndcg@10": 0.8409549458209694,
+    "finetuned_muril_cosine_mrr@10": 0.7999380711880701,
+    "finetuned_muril_cosine_map@100": 0.801284711603865
+}
