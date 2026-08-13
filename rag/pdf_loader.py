@@ -1,7 +1,7 @@
 import re
 import fitz
 
-from config import encoder
+from rag.config import encoder
 
 # Global storage for uploaded PDF knowledge
 pdf_documents = []

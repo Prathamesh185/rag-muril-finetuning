@@ -1,11 +1,10 @@
 import numpy as np
 from sentence_transformers import util
 
-from config import encoder
-from data import base_documents
-from llm import gemini_llm, local_llm
-import pdf_loader
-
+from rag.config import encoder
+from rag.data import base_documents
+from rag.llm import gemini_llm, local_llm
+from rag import pdf_loader
 
 # Pre-compute embeddings for base knowledge
 base_embeddings = encoder.encode(

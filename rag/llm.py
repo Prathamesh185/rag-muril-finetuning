@@ -1,6 +1,6 @@
 import ollama
 
-from config import client
+from rag.config import client
 
 
 def local_llm(prompt):

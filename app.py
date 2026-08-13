@@ -1,7 +1,7 @@
 import gradio as gr
 
-from pdf_loader import load_pdf
-from retriever import answer
+from rag.pdf_loader import load_pdf
+from rag.retriever import answer
 
 
 with gr.Blocks(title="Hindi Agriculture RAG Assistant") as demo:
