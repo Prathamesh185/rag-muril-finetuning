@@ -1,7 +1,42 @@
 import gradio as gr
 
 from rag.pdf_loader import load_pdf
-from rag.retriever import answer
+from rag.pipeline import rag_answer
+
+
+def answer_ui(question, model_choice):
+
+    result = rag_answer(
+        question,
+        model_choice
+    )
+
+    answer = result["answer"]
+
+    sources = "\n\nSources:\n"
+
+    seen_urls = set()
+    source_count = 0
+
+    for item in result["retrieved"]:
+
+        if item["url"] in seen_urls:
+            continue
+
+        seen_urls.add(item["url"])
+
+        source_count += 1
+
+        sources += (
+            f"\n{source_count}. {item['title']}\n"
+            f"{item['url']}\n"
+        )
+
+        if source_count == 3:
+            break
+
+    return answer + sources
+
 
 
 with gr.Blocks(title="Hindi Agriculture RAG Assistant") as demo:
@@ -74,13 +109,13 @@ You can optionally upload an agriculture PDF to extend the knowledge base.
             )
 
             ask_button.click(
-                fn=answer,
+                fn=answer_ui,
                 inputs=[
                     question_input,
                     model_choice
                 ],
                 outputs=answer_output
-            )
+)
 
 
 demo.launch()
