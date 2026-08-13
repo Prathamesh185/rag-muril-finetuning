@@ -1,17 +1,30 @@
 import os
+
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from google import genai
 
-# Load environment variables
+
 load_dotenv()
 
-# Gemini Client
+
+# Gemini
 client = genai.Client(
     api_key=os.getenv("GOOGLE_API_KEY")
 )
 
-# Embedding Model
+
+# Fine-tuned MuRIL V2
+ENCODER_PATH = "models/fine_tuned_muril_v2"
+
 encoder = SentenceTransformer(
-    "paraphrase-multilingual-MiniLM-L12-v2"
+    ENCODER_PATH
+)
+
+encoder.max_seq_length = 256
+
+print("Fine-tuned MuRIL loaded.")
+print(
+    "Embedding dimension:",
+    encoder.get_embedding_dimension()
 )
