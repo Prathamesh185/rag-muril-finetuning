@@ -100,7 +100,7 @@ Hindi Answer + Retrieved Sources
 
 ```text
                     ┌── Base MuRIL ───────→ Base FAISS ───────┐
-User Question ──────┤                                          ├──→ Compare Top-K Results
+User Question ──────┤                                         ├──→ Compare Top-K Results
                     └── Fine-Tuned MuRIL ─→ Fine-Tuned FAISS ─┘
 ```
 
