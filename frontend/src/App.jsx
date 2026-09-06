@@ -1,26 +1,28 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
+
 import {
   sendChat,
   retrievePassages,
   compareModels,
+  getLabeledAnswer,
 } from "./api/client";
 
 /* ---------------------------------------------------------
-   AgriSahayak AI — Domain-Aware Sentence Encoder for
-   Agricultural RAG. Research demo frontend.
+AgriSahayak AI — Domain-Aware Sentence Encoder for
+Agricultural RAG. Research demo frontend.
 
-   Palette
-   --forest   #234D33  primary text / heading ink
-   --green    #2F6D4F  primary accent (fine-tuned model, actions)
-   --green-lt #E8F4EB  selected state / evidence bg
-   --paper    #FFFFFF  base background
-   --mist     #F6F8F5  section background
-   --line     #E4E8E2  hairline borders
-   --ink      #1C231E  body text
-   --mute     #667369  secondary text
-   --neutral  #F1F1EF  base MuRIL panel bg
-   --neutral-ink #57605A base MuRIL text
-   --amber    #B8722B  weaker-rank / caution accent
+Palette
+--forest #234D33 primary text / heading ink
+--green #2F6D4F primary accent (fine-tuned model, actions)
+--green-lt #E8F4EB selected state / evidence bg
+--paper #FFFFFF base background
+--mist #F6F8F5 section background
+--line #E4E8E2 hairline borders
+--ink #1C231E body text
+--mute #667369 secondary text
+--neutral #F1F1EF base MuRIL panel bg
+--neutral-ink #57605A base MuRIL text
+--amber #B8722B weaker-rank / caution accent
 --------------------------------------------------------- */
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');`;
@@ -77,181 +79,19 @@ const METRICS = [
 
 const DEMO_QUERIES = [
   {
-    id: "irrigation",
-    query: "गेहूं की पहली सिंचाई कब करनी चाहिए?",
-    groundTruthTitle: "गेहूं की खेती — सिंचाई प्रबंधन",
-    baseRank: 4,
-    tunedRank: 1,
-    base: [
-      {
-        rank: 1,
-        title: "गेहूं की फसल की सामान्य जानकारी",
-        similarity: 0.74,
-        passage: "गेहूं भारत की प्रमुख रबी फसल है जो उत्तर भारत के मैदानी क्षेत्रों में व्यापक रूप से उगाई जाती है। इसकी खेती अक्टूबर–नवंबर में शुरू होती है।",
-        highlight: "गेहूं भारत की प्रमुख रबी फसल है जो उत्तर भारत के मैदानी क्षेत्रों में व्यापक रूप से उगाई जाती है।",
-        correct: false,
-      },
-      {
-        rank: 2,
-        title: "बीज दर और बुवाई विधि",
-        similarity: 0.71,
-        passage: "गेहूं की बुवाई पंक्तियों में की जाती है, सामान्यतः 20–22 सेमी की दूरी रखी जाती है। बीज दर मिट्टी और किस्म पर निर्भर करती है।",
-        highlight: "गेहूं की बुवाई पंक्तियों में की जाती है, सामान्यतः 20–22 सेमी की दूरी रखी जाती है।",
-        correct: false,
-      },
-      {
-        rank: 3,
-        title: "उर्वरक प्रबंधन — रबी फसलें",
-        similarity: 0.69,
-        passage: "नाइट्रोजन, फास्फोरस और पोटाश का संतुलित प्रयोग गेहूं की उपज बढ़ाने में सहायक होता है। पहली खुराक बुवाई के समय दी जाती है।",
-        highlight: "नाइट्रोजन, फास्फोरस और पोटाश का संतुलित प्रयोग गेहूं की उपज बढ़ाने में सहायक होता है।",
-        correct: false,
-      },
-    ],
-    tuned: [
-      {
-        rank: 1,
-        title: "गेहूं की खेती — सिंचाई प्रबंधन",
-        similarity: 0.91,
-        passage: "गेहूं की फसल के लिए भूमि तैयार करना आवश्यक है। पहली सिंचाई बुवाई के लगभग 20–25 दिन बाद, क्राउन रूट इनिशिएशन की अवस्था में करनी चाहिए।",
-        highlight: "पहली सिंचाई बुवाई के लगभग 20–25 दिन बाद, क्राउन रूट इनिशिएशन की अवस्था में करनी चाहिए।",
-        correct: true,
-      },
-      {
-        rank: 2,
-        title: "रबी फसल — जल प्रबंधन दिशानिर्देश",
-        similarity: 0.85,
-        passage: "रबी मौसम की फसलों में सिंचाई का समय फसल की अवस्था पर निर्भर करता है। गेहूं में मुकुट जड़ अवस्था सबसे संवेदनशील मानी जाती है।",
-        highlight: "गेहूं में मुकुट जड़ अवस्था सबसे संवेदनशील मानी जाती है।",
-        correct: false,
-      },
-      {
-        rank: 3,
-        title: "मिट्टी की नमी और सिंचाई अनुसूची",
-        similarity: 0.79,
-        passage: "सही समय पर सिंचाई करने से पानी की बचत होती है और उपज में वृद्धि होती है।",
-        highlight: "सही समय पर सिंचाई करने से पानी की बचत होती है और उपज में वृद्धि होती है।",
-        correct: false,
-      },
-    ],
+    id: "carnation",
+    query:
+      "कारनेशन की व्यावसायिक खेती भारत में किन स्थानों पर की जाती है?",
   },
   {
-    id: "jeevamrut",
-    query: "जीवामृत कैसे तैयार करें?",
-    groundTruthTitle: "जीवामृत निर्माण विधि — प्राकृतिक खेती",
-    baseRank: 9,
-    tunedRank: 1,
-    base: [
-      {
-        rank: 1,
-        title: "प्राकृतिक खेती का परिचय",
-        similarity: 0.68,
-        passage: "प्राकृतिक खेती एक कम लागत वाली कृषि पद्धति है जिसमें रासायनिक उर्वरकों के स्थान पर स्थानीय संसाधनों का उपयोग किया जाता है।",
-        highlight: "प्राकृतिक खेती एक कम लागत वाली कृषि पद्धति है जिसमें रासायनिक उर्वरकों के स्थान पर स्थानीय संसाधनों का उपयोग किया जाता है।",
-        correct: false,
-      },
-      {
-        rank: 2,
-        title: "देशी गाय आधारित खेती",
-        similarity: 0.65,
-        passage: "देशी गाय का गोबर और गोमूत्र प्राकृतिक खेती में कई तैयारियों का आधार होते हैं, जिनमें मिट्टी की उर्वरता बढ़ाना शामिल है।",
-        highlight: "देशी गाय का गोबर और गोमूत्र प्राकृतिक खेती में कई तैयारियों का आधार होते हैं।",
-        correct: false,
-      },
-      {
-        rank: 3,
-        title: "जैविक खाद के प्रकार",
-        similarity: 0.63,
-        passage: "कम्पोस्ट, वर्मीकम्पोस्ट और हरी खाद प्राकृतिक खेती में मिट्टी सुधार के लिए प्रयोग की जाने वाली प्रमुख विधियाँ हैं।",
-        highlight: "कम्पोस्ट, वर्मीकम्पोस्ट और हरी खाद प्राकृतिक खेती में मिट्टी सुधार के लिए प्रयोग की जाने वाली प्रमुख विधियाँ हैं।",
-        correct: false,
-      },
-    ],
-    tuned: [
-      {
-        rank: 1,
-        title: "जीवामृत निर्माण विधि — प्राकृतिक खेती",
-        similarity: 0.89,
-        passage: "जीवामृत बनाने के लिए देशी गाय का गोबर, गोमूत्र, गुड़, बेसन और खेत की मेड़ की मिट्टी को पानी में मिलाकर 5–7 दिन तक किण्वित किया जाता है।",
-        highlight: "जीवामृत बनाने के लिए देशी गाय का गोबर, गोमूत्र, गुड़, बेसन और खेत की मेड़ की मिट्टी को पानी में मिलाकर 5–7 दिन तक किण्वित किया जाता है।",
-        correct: true,
-      },
-      {
-        rank: 2,
-        title: "देशी गाय आधारित खेती",
-        similarity: 0.81,
-        passage: "देशी गाय का गोबर और गोमूत्र प्राकृतिक खेती में कई तैयारियों का आधार होते हैं, जिनमें जीवामृत और बीजामृत शामिल हैं।",
-        highlight: "देशी गाय का गोबर और गोमूत्र प्राकृतिक खेती में कई तैयारियों का आधार होते हैं, जिनमें जीवामृत और बीजामृत शामिल हैं।",
-        correct: false,
-      },
-      {
-        rank: 3,
-        title: "किण्वित जैविक घोल — प्रयोग विधि",
-        similarity: 0.77,
-        passage: "तैयार घोल को छानकर सिंचाई के पानी के साथ या पत्तियों पर छिड़काव के रूप में प्रयोग किया जा सकता है।",
-        highlight: "तैयार घोल को छानकर सिंचाई के पानी के साथ या पत्तियों पर छिड़काव के रूप में प्रयोग किया जा सकता है।",
-        correct: false,
-      },
-    ],
+    id: "gladiolus",
+    query:
+      "ग्लेडियोलस की रोपाई के लिए किस व्यास के कंद उपयुक्त होते हैं?",
   },
   {
-    id: "pest",
-    query: "धान में कीट नियंत्रण कैसे करें?",
-    groundTruthTitle: "धान — प्रमुख कीट एवं समेकित प्रबंधन",
-    baseRank: 6,
-    tunedRank: 2,
-    base: [
-      {
-        rank: 1,
-        title: "धान की खेती — सामान्य परिचय",
-        similarity: 0.72,
-        passage: "धान भारत की प्रमुख खरीफ फसल है, जिसकी खेती जलभराव वाले खेतों में की जाती है। रोपाई जून–जुलाई में होती है।",
-        highlight: "धान भारत की प्रमुख खरीफ फसल है, जिसकी खेती जलभराव वाले खेतों में की जाती है।",
-        correct: false,
-      },
-      {
-        rank: 2,
-        title: "धान की उन्नत किस्में",
-        similarity: 0.70,
-        passage: "क्षेत्र और मिट्टी के अनुसार उपयुक्त उन्नत किस्मों का चयन उपज बढ़ाने में महत्वपूर्ण भूमिका निभाता है।",
-        highlight: "क्षेत्र और मिट्टी के अनुसार उपयुक्त उन्नत किस्मों का चयन उपज बढ़ाने में महत्वपूर्ण भूमिका निभाता है।",
-        correct: false,
-      },
-      {
-        rank: 3,
-        title: "खरीफ फसलों में जल प्रबंधन",
-        similarity: 0.68,
-        passage: "धान के खेत में लगातार जलभराव बनाए रखना आवश्यक होता है, विशेषकर रोपाई के शुरुआती चरण में।",
-        highlight: "धान के खेत में लगातार जलभराव बनाए रखना आवश्यक होता है, विशेषकर रोपाई के शुरुआती चरण में।",
-        correct: false,
-      },
-    ],
-    tuned: [
-      {
-        rank: 1,
-        title: "धान का तना छेदक — पहचान एवं नियंत्रण",
-        similarity: 0.86,
-        passage: "तना छेदक कीट धान की फसल में 'डेड हार्ट' और 'व्हाइट ईयर' लक्षण उत्पन्न करता है। समेकित नियंत्रण में प्रकाश प्रपंच और जैविक शत्रु कीटों का उपयोग किया जाता है।",
-        highlight: "समेकित नियंत्रण में प्रकाश प्रपंच और जैविक शत्रु कीटों का उपयोग किया जाता है।",
-        correct: false,
-      },
-      {
-        rank: 2,
-        title: "धान — प्रमुख कीट एवं समेकित प्रबंधन",
-        similarity: 0.84,
-        passage: "धान में तना छेदक, पत्ती लपेटक और भूरा फुदका प्रमुख कीट हैं। समेकित कीट प्रबंधन में फसल चक्र, प्रतिरोधी किस्में और आवश्यकतानुसार कीटनाशी प्रयोग शामिल है।",
-        highlight: "समेकित कीट प्रबंधन में फसल चक्र, प्रतिरोधी किस्में और आवश्यकतानुसार कीटनाशी प्रयोग शामिल है।",
-        correct: true,
-      },
-      {
-        rank: 3,
-        title: "भूरा फुदका — प्रबंधन रणनीति",
-        similarity: 0.80,
-        passage: "भूरा फुदका नमी और घनी रोपाई में तेजी से फैलता है। खेत की समय-समय पर निगरानी अनुशंसित है।",
-        highlight: "खेत की समय-समय पर निगरानी अनुशंसित है।",
-        correct: false,
-      },
-    ],
+    id: "soil-ph",
+    query:
+      "मिट्टी के pH मान को उदासीन स्तर पर लाने के लिए प्रति हेक्टेयर कितने क्विंटल चूने की आवश्यकता होती है?",
   },
 ];
 
@@ -261,7 +101,11 @@ function Badge({ children }) {
   return (
     <span
       className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
-      style={{ background: TOKENS.greenLt, color: TOKENS.forest, border: `1px solid ${TOKENS.greenLine}` }}
+      style={{
+        background: TOKENS.greenLt,
+        color: TOKENS.forest,
+        border: `1px solid ${TOKENS.greenLine}`,
+      }}
     >
       {children}
     </span>
@@ -272,23 +116,46 @@ function SimBadge({ value }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium"
-      style={{ background: TOKENS.mist, color: TOKENS.ink, border: `1px solid ${TOKENS.line}`, fontFamily: "'JetBrains Mono', monospace" }}
+      style={{
+        background: TOKENS.mist,
+        color: TOKENS.ink,
+        border: `1px solid ${TOKENS.line}`,
+        fontFamily: "'JetBrains Mono', monospace",
+      }}
     >
-      cos&nbsp;sim&nbsp;{value.toFixed(2)}
+      cos sim {value.toFixed(2)}
     </span>
   );
 }
 
 function EvidenceCard({ item, accent }) {
   const isGreen = accent === "green";
-  const before = item.passage.slice(0, item.passage.indexOf(item.highlight));
-  const after = item.passage.slice(item.passage.indexOf(item.highlight) + item.highlight.length);
+
+  const highlightIndex = item.passage.indexOf(item.highlight);
+
+  const before =
+    highlightIndex >= 0
+      ? item.passage.slice(0, highlightIndex)
+      : item.passage;
+
+  const after =
+    highlightIndex >= 0
+      ? item.passage.slice(
+        highlightIndex + item.highlight.length
+      )
+      : "";
+
   return (
     <div
       className="rounded-xl p-4 sm:p-5"
       style={{
-        background: item.correct ? TOKENS.greenLt : TOKENS.paper,
-        border: `1px solid ${item.correct ? TOKENS.greenLine : TOKENS.line}`,
+        background: item.correct
+          ? TOKENS.greenLt
+          : TOKENS.paper,
+        border: `1px solid ${item.correct
+          ? TOKENS.greenLine
+          : TOKENS.line
+          }`,
       }}
     >
       <div className="flex items-center justify-between mb-2.5 flex-wrap gap-2">
@@ -296,42 +163,83 @@ function EvidenceCard({ item, accent }) {
           <span
             className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold"
             style={{
-              background: isGreen ? TOKENS.green : TOKENS.neutralInk,
+              background: isGreen
+                ? TOKENS.green
+                : TOKENS.neutralInk,
               color: "#fff",
             }}
           >
             {item.rank}
           </span>
-          <span className="text-sm font-medium" style={{ color: TOKENS.ink }}>
+
+          <span
+            className="text-sm font-medium"
+            style={{ color: TOKENS.ink }}
+          >
             {item.title}
           </span>
+
           {item.correct && (
-            <span className="text-xs font-semibold" style={{ color: TOKENS.green }}>
+            <span
+              className="text-xs font-semibold"
+              style={{ color: TOKENS.green }}
+            >
               ✓ ground truth
             </span>
           )}
         </div>
+
         <SimBadge value={item.similarity} />
       </div>
-      <p dir="auto" className="text-[15px] leading-relaxed" style={{ color: TOKENS.mute, fontFamily: "'Noto Sans Devanagari', 'Inter', sans-serif" }}>
-        {before}
-        <mark
-          style={{
-            background: item.correct ? "#CFEAD8" : TOKENS.greenLt,
-            color: TOKENS.forest,
-            padding: "0 2px",
-            borderRadius: 3,
-          }}
-        >
-          {item.highlight}
-        </mark>
-        {after}
+
+      <p
+        dir="auto"
+        className="text-[15px] leading-relaxed"
+        style={{
+          color: TOKENS.mute,
+          fontFamily:
+            "'Noto Sans Devanagari', 'Inter', sans-serif",
+        }}
+      >
+        {highlightIndex >= 0 ? (
+          <>
+            {before}
+
+            <mark
+              style={{
+                background: item.correct
+                  ? "#CFEAD8"
+                  : TOKENS.greenLt,
+                color: TOKENS.forest,
+                padding: "0 2px",
+                borderRadius: 3,
+              }}
+            >
+              {item.highlight}
+            </mark>
+
+            {after}
+          </>
+        ) : (
+          item.passage
+        )}
       </p>
+
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-xs" style={{ color: TOKENS.mute }}>
+        <span
+          className="text-xs"
+          style={{ color: TOKENS.mute }}
+        >
           Source: Vikaspedia
         </span>
-        <a href="https://vikaspedia.in" target="_blank" rel="noreferrer" className="text-xs font-medium hover:underline" style={{ color: TOKENS.green }}>
+
+        <a
+          href="https://vikaspedia.in"
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs font-medium hover:underline"
+          style={{ color: TOKENS.green }}
+        >
           View source →
         </a>
       </div>
@@ -339,13 +247,35 @@ function EvidenceCard({ item, accent }) {
   );
 }
 
-function LiveEvidenceCard({ item }) {
+function LiveEvidenceCard({
+  item,
+  groundTruthChunkId = null,
+  supportingText = "",
+}) {
+  const isGroundTruth =
+    Boolean(groundTruthChunkId) &&
+    item.chunk_id === groundTruthChunkId;
+
+  const shouldHighlight =
+    isGroundTruth &&
+    supportingText &&
+    item.text.includes(supportingText);
+
+  const highlightIndex = shouldHighlight
+    ? item.text.indexOf(supportingText)
+    : -1;
+
   return (
     <div
       className="rounded-xl p-4 sm:p-5"
       style={{
-        background: TOKENS.paper,
-        border: `1px solid ${TOKENS.line}`,
+        background: isGroundTruth
+          ? TOKENS.greenLt
+          : TOKENS.paper,
+        border: `1px solid ${isGroundTruth
+          ? TOKENS.greenLine
+          : TOKENS.line
+          }`,
       }}
     >
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
@@ -366,6 +296,15 @@ function LiveEvidenceCard({ item }) {
           >
             {item.title || "Retrieved passage"}
           </span>
+
+          {isGroundTruth && (
+            <span
+              className="text-xs font-semibold"
+              style={{ color: TOKENS.green }}
+            >
+              ✓ Labeled ground truth
+            </span>
+          )}
         </div>
 
         <span
@@ -386,14 +325,44 @@ function LiveEvidenceCard({ item }) {
         className="text-[15px] leading-relaxed"
         style={{
           color: TOKENS.mute,
-          fontFamily: "'Noto Sans Devanagari','Inter',sans-serif",
+          fontFamily:
+            "'Noto Sans Devanagari','Inter',sans-serif",
         }}
       >
-        {item.text}
+        {shouldHighlight ? (
+          <>
+            {item.text.slice(
+              0,
+              highlightIndex
+            )}
+
+            <mark
+              style={{
+                background: "#BFE8C9",
+                color: TOKENS.forest,
+                padding: "1px 3px",
+                borderRadius: 3,
+                fontWeight: 600,
+              }}
+            >
+              {supportingText}
+            </mark>
+
+            {item.text.slice(
+              highlightIndex +
+              supportingText.length
+            )}
+          </>
+        ) : (
+          item.text
+        )}
       </p>
 
       <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="text-xs" style={{ color: TOKENS.mute }}>
+        <span
+          className="text-xs"
+          style={{ color: TOKENS.mute }}
+        >
           Source: {item.source || "Unknown"}
         </span>
 
@@ -413,7 +382,6 @@ function LiveEvidenceCard({ item }) {
   );
 }
 
-
 function PipelineDiagram({
   compact,
   steps = PIPELINE_STEPS,
@@ -422,21 +390,43 @@ function PipelineDiagram({
     <div className="flex items-center overflow-x-auto gap-1.5 pb-1">
       {steps.map((step, i) => {
         const isHero = step === "Fine-Tuned MuRIL";
+
         return (
-          <div key={step} className="flex items-center flex-shrink-0">
+          <div
+            key={step}
+            className="flex items-center flex-shrink-0"
+          >
             <div
-              className={`rounded-lg text-center whitespace-nowrap ${compact ? "px-3 py-2 text-xs" : "px-4 py-3 text-sm"}`}
+              className={`rounded-lg text-center whitespace-nowrap ${compact
+                ? "px-3 py-2 text-xs"
+                : "px-4 py-3 text-sm"
+                }`}
               style={{
-                background: isHero ? TOKENS.green : TOKENS.mist,
-                color: isHero ? "#fff" : TOKENS.ink,
-                border: `1px solid ${isHero ? TOKENS.green : TOKENS.line}`,
-                fontWeight: isHero ? 600 : 500,
+                background: isHero
+                  ? TOKENS.green
+                  : TOKENS.mist,
+                color: isHero
+                  ? "#fff"
+                  : TOKENS.ink,
+                border: `1px solid ${isHero
+                  ? TOKENS.green
+                  : TOKENS.line
+                  }`,
+                fontWeight: isHero
+                  ? 600
+                  : 500,
               }}
             >
               {step}
             </div>
+
             {i < steps.length - 1 && (
-              <span className="mx-1.5 flex-shrink-0" style={{ color: TOKENS.mute }}>
+              <span
+                className="mx-1.5 flex-shrink-0"
+                style={{
+                  color: TOKENS.mute,
+                }}
+              >
                 →
               </span>
             )}
@@ -447,22 +437,56 @@ function PipelineDiagram({
   );
 }
 
-function RankBar({ label, rank, maxRank, isWinner, accent }) {
-  const pct = Math.max(6, 100 - ((rank - 1) / maxRank) * 100);
+function RankBar({
+  label,
+  rank,
+  maxRank,
+  isWinner,
+  accent,
+}) {
+  const pct = Math.max(
+    6,
+    100 - ((rank - 1) / maxRank) * 100
+  );
+
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1.5">
-        <span className="text-sm font-medium" style={{ color: TOKENS.ink }}>
+        <span
+          className="text-sm font-medium"
+          style={{ color: TOKENS.ink }}
+        >
           {label}
         </span>
-        <span className="text-sm font-semibold" style={{ color: isWinner ? TOKENS.green : TOKENS.amber, fontFamily: "'JetBrains Mono', monospace" }}>
+
+        <span
+          className="text-sm font-semibold"
+          style={{
+            color: isWinner
+              ? TOKENS.green
+              : TOKENS.amber,
+            fontFamily:
+              "'JetBrains Mono', monospace",
+          }}
+        >
           #{rank} {isWinner && "✓"}
         </span>
       </div>
-      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: TOKENS.mist }}>
+
+      <div
+        className="h-2.5 rounded-full overflow-hidden"
+        style={{
+          background: TOKENS.mist,
+        }}
+      >
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: isWinner ? TOKENS.green : "#D7BB98", }}
+          style={{
+            width: `${pct}%`,
+            background: isWinner
+              ? TOKENS.green
+              : "#D7BB98",
+          }}
         />
       </div>
     </div>
@@ -473,37 +497,75 @@ function RankBar({ label, rank, maxRank, isWinner, accent }) {
 
 function NavBar({ tab, setTab }) {
   const tabs = [
-    { id: "assistant", label: "AI Assistant" },
-    { id: "analysis", label: "Retrieval Analysis" },
-    { id: "compare", label: "Model Comparison" },
+    {
+      id: "assistant",
+      label: "AI Assistant",
+    },
+    {
+      id: "analysis",
+      label: "Retrieval Analysis",
+    },
+    {
+      id: "compare",
+      label: "Model Comparison",
+    },
   ];
+
   return (
     <header
       className="sticky top-0 z-20 backdrop-blur"
-      style={{ background: "rgba(255,255,255,0.92)", borderBottom: `1px solid ${TOKENS.line}` }}
+      style={{
+        background:
+          "rgba(255,255,255,0.92)",
+        borderBottom:
+          `1px solid ${TOKENS.line}`,
+      }}
     >
       <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
         <div className="flex items-baseline gap-2.5">
           <span
             className="text-[19px] font-semibold tracking-tight"
-            style={{ color: TOKENS.forest, fontFamily: "'Newsreader', serif" }}
+            style={{
+              color: TOKENS.forest,
+              fontFamily:
+                "'Newsreader', serif",
+            }}
           >
             AgriSahayak AI
           </span>
-          <span className="hidden md:inline text-xs" style={{ color: TOKENS.mute }}>
-            Agriculture-Aware Multilingual RAG
+
+          <span
+            className="hidden md:inline text-xs"
+            style={{ color: TOKENS.mute }}
+          >
+            Agriculture-Aware RAG using Fine-Tuned MuRIL
           </span>
         </div>
-        <nav className="flex items-center gap-1 rounded-full p-1" style={{ background: TOKENS.mist }}>
+
+        <nav
+          className="flex items-center gap-1 rounded-full p-1"
+          style={{
+            background: TOKENS.mist,
+          }}
+        >
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors"
               style={{
-                background: tab === t.id ? TOKENS.paper : "transparent",
-                color: tab === t.id ? TOKENS.forest : TOKENS.mute,
-                boxShadow: tab === t.id ? "0 1px 2px rgba(35,77,51,0.12)" : "none",
+                background:
+                  tab === t.id
+                    ? TOKENS.paper
+                    : "transparent",
+                color:
+                  tab === t.id
+                    ? TOKENS.forest
+                    : TOKENS.mute,
+                boxShadow:
+                  tab === t.id
+                    ? "0 1px 2px rgba(35,77,51,0.12)"
+                    : "none",
               }}
             >
               {t.label}
@@ -519,19 +581,23 @@ function NavBar({ tab, setTab }) {
 
 function AssistantPage() {
   const [query, setQuery] = useState("");
-  const [submitted, setSubmitted] = useState(null);
+  const [submitted, setSubmitted] =
+    useState(null);
 
   const [modelChoice, setModelChoice] =
     useState("Gemini API");
 
   const [answer, setAnswer] = useState("");
-  const [retrieved, setRetrieved] = useState([]);
+  const [retrieved, setRetrieved] =
+    useState([]);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
+
   const [error, setError] = useState("");
 
-  const [evOpen, setEvOpen] = useState(false);
-  
+  const [evOpen, setEvOpen] =
+    useState(false);
 
   const ask = async (q) => {
     const text = q ?? query;
@@ -556,6 +622,7 @@ function AssistantPage() {
       );
 
       setAnswer(result.answer);
+
       setRetrieved(
         Array.isArray(result.retrieved)
           ? result.retrieved
@@ -587,7 +654,8 @@ function AssistantPage() {
       retrieved
         .filter(
           (item) =>
-            typeof item.url === "string" &&
+            typeof item.url ===
+            "string" &&
             item.url.trim()
         )
         .map((item) => [
@@ -611,7 +679,8 @@ function AssistantPage() {
           className="absolute inset-0 -z-10"
           style={{
             backgroundImage: `radial-gradient(${TOKENS.greenLine} 1px, transparent 1px)`,
-            backgroundSize: "22px 22px",
+            backgroundSize:
+              "22px 22px",
             maskImage:
               "radial-gradient(ellipse 60% 50% at 50% 30%, black 40%, transparent 100%)",
             opacity: 0.5,
@@ -632,9 +701,13 @@ function AssistantPage() {
 
           <p
             className="text-[15px] mb-8"
-            style={{ color: TOKENS.mute }}
+            style={{
+              color: TOKENS.mute,
+            }}
           >
-            Ask agriculture questions and get answers grounded in retrieved agricultural knowledge.
+            Ask agriculture questions and get
+            answers grounded in retrieved
+            agricultural knowledge.
           </p>
 
           <div className="flex flex-wrap justify-center gap-2 mb-8">
@@ -645,8 +718,10 @@ function AssistantPage() {
                 onClick={() => ask(ex)}
                 className="px-3.5 py-2 rounded-full text-sm transition-colors"
                 style={{
-                  background: TOKENS.paper,
-                  border: `1px solid ${TOKENS.line}`,
+                  background:
+                    TOKENS.paper,
+                  border:
+                    `1px solid ${TOKENS.line}`,
                   color: TOKENS.ink,
                   fontFamily:
                     "'Noto Sans Devanagari','Inter',sans-serif",
@@ -660,7 +735,9 @@ function AssistantPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <span
               className="text-xs font-medium"
-              style={{ color: TOKENS.mute }}
+              style={{
+                color: TOKENS.mute,
+              }}
             >
               Answer model
             </span>
@@ -668,13 +745,17 @@ function AssistantPage() {
             <select
               value={modelChoice}
               onChange={(e) =>
-                setModelChoice(e.target.value)
+                setModelChoice(
+                  e.target.value
+                )
               }
               className="text-sm rounded-lg px-3 py-2 outline-none"
               style={{
-                background: TOKENS.paper,
+                background:
+                  TOKENS.paper,
                 color: TOKENS.ink,
-                border: `1px solid ${TOKENS.line}`,
+                border:
+                  `1px solid ${TOKENS.line}`,
               }}
             >
               <option value="Gemini API">
@@ -694,8 +775,10 @@ function AssistantPage() {
             }}
             className="flex items-center gap-2 rounded-2xl p-2 shadow-sm"
             style={{
-              background: TOKENS.paper,
-              border: `1px solid ${TOKENS.line}`,
+              background:
+                TOKENS.paper,
+              border:
+                `1px solid ${TOKENS.line}`,
             }}
           >
             <input
@@ -719,7 +802,8 @@ function AssistantPage() {
               className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl"
               style={{
                 color: TOKENS.mute,
-                border: `1px solid ${TOKENS.line}`,
+                border:
+                  `1px solid ${TOKENS.line}`,
               }}
             >
               🎙
@@ -730,9 +814,12 @@ function AssistantPage() {
               disabled={loading}
               className="px-4 py-2.5 rounded-xl text-sm font-medium flex-shrink-0"
               style={{
-                background: TOKENS.green,
+                background:
+                  TOKENS.green,
                 color: "#fff",
-                opacity: loading ? 0.7 : 1,
+                opacity: loading
+                  ? 0.7
+                  : 1,
               }}
             >
               Ask
@@ -748,7 +835,9 @@ function AssistantPage() {
       <button
         onClick={resetQuestion}
         className="text-xs font-medium mb-6"
-        style={{ color: TOKENS.mute }}
+        style={{
+          color: TOKENS.mute,
+        }}
       >
         ← New question
       </button>
@@ -756,7 +845,9 @@ function AssistantPage() {
       <div className="mb-6">
         <div
           className="text-xs font-medium mb-1.5"
-          style={{ color: TOKENS.mute }}
+          style={{
+            color: TOKENS.mute,
+          }}
         >
           Your question
         </div>
@@ -775,7 +866,9 @@ function AssistantPage() {
 
         <div
           className="text-xs mt-2"
-          style={{ color: TOKENS.mute }}
+          style={{
+            color: TOKENS.mute,
+          }}
         >
           Model: {modelChoice}
         </div>
@@ -785,23 +878,30 @@ function AssistantPage() {
         <div
           className="rounded-xl p-6 flex items-center gap-3"
           style={{
-            background: TOKENS.mist,
-            border: `1px solid ${TOKENS.line}`,
+            background:
+              TOKENS.mist,
+            border:
+              `1px solid ${TOKENS.line}`,
           }}
         >
           <span
             className="w-4 h-4 rounded-full animate-spin flex-shrink-0"
             style={{
-              border: `2px solid ${TOKENS.greenLine}`,
-              borderTopColor: TOKENS.green,
+              border:
+                `2px solid ${TOKENS.greenLine}`,
+              borderTopColor:
+                TOKENS.green,
             }}
           />
 
           <span
             className="text-sm"
-            style={{ color: TOKENS.mute }}
+            style={{
+              color: TOKENS.mute,
+            }}
           >
-            Retrieving agricultural knowledge and generating answer…
+            Retrieving agricultural knowledge
+            and generating answer…
           </span>
         </div>
       )}
@@ -810,8 +910,10 @@ function AssistantPage() {
         <div
           className="rounded-xl p-5"
           style={{
-            background: TOKENS.amberLt,
-            border: `1px solid ${TOKENS.amber}`,
+            background:
+              TOKENS.amberLt,
+            border:
+              `1px solid ${TOKENS.amber}`,
             color: TOKENS.ink,
           }}
         >
@@ -825,123 +927,155 @@ function AssistantPage() {
         </div>
       )}
 
-      {!loading && !error && answer && (
-        <>
-          <div
-            className="rounded-2xl p-5 sm:p-6 mb-4"
-            style={{
-              background: TOKENS.paper,
-              border: `1px solid ${TOKENS.line}`,
-              boxShadow:
-                "0 1px 3px rgba(28,35,30,0.05)",
-            }}
-          >
-            <div className="mb-3">
-              <Badge>
-                Generated from retrieved agricultural evidence
-              </Badge>
-            </div>
-
-            <p
-              dir="auto"
-              className="text-[15px] leading-relaxed mb-4"
+      {!loading &&
+        !error &&
+        answer && (
+          <>
+            <div
+              className="rounded-2xl p-5 sm:p-6 mb-4"
               style={{
-                color: TOKENS.ink,
-                fontFamily:
-                  "'Noto Sans Devanagari','Inter',sans-serif",
+                background:
+                  TOKENS.paper,
+                border:
+                  `1px solid ${TOKENS.line}`,
+                boxShadow:
+                  "0 1px 3px rgba(28,35,30,0.05)",
               }}
             >
-              {answer}
-            </p>
+              <div className="mb-3">
+                <Badge>
+                  Generated from retrieved
+                  agricultural evidence
+                </Badge>
+              </div>
 
-            {uniqueSources.length > 0 && (
-              <div
-                className="pt-4 flex flex-wrap items-center gap-3"
+              <p
+                dir="auto"
+                className="text-[15px] leading-relaxed mb-4"
                 style={{
-                  borderTop:
-                    `1px solid ${TOKENS.line}`,
+                  color: TOKENS.ink,
+                  fontFamily:
+                    "'Noto Sans Devanagari','Inter',sans-serif",
                 }}
               >
-                <span
-                  className="text-xs font-medium"
-                  style={{
-                    color: TOKENS.mute,
-                  }}
-                >
-                  Sources
-                </span>
+                {answer}
+              </p>
 
-                {uniqueSources.map(
-                  (source, index) => (
-                    <a
-                      key={source.url}
-                      href={source.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      dir="auto"
-                      className="text-xs font-medium px-2.5 py-1 rounded-full hover:underline"
+              {uniqueSources.length >
+                0 && (
+                  <div
+                    className="pt-4 flex flex-wrap items-center gap-3"
+                    style={{
+                      borderTop:
+                        `1px solid ${TOKENS.line}`,
+                    }}
+                  >
+                    <span
+                      className="text-xs font-medium"
                       style={{
-                        background:
-                          TOKENS.greenLt,
-                        color: TOKENS.forest,
+                        color:
+                          TOKENS.mute,
                       }}
                     >
-                      [{index + 1}]{" "}
-                      {source.title}
-                    </a>
-                  )
+                      Sources
+                    </span>
+
+                    {uniqueSources.map(
+                      (
+                        source,
+                        index
+                      ) => (
+                        <a
+                          key={
+                            source.url
+                          }
+                          href={
+                            source.url
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                          dir="auto"
+                          className="text-xs font-medium px-2.5 py-1 rounded-full hover:underline"
+                          style={{
+                            background:
+                              TOKENS.greenLt,
+                            color:
+                              TOKENS.forest,
+                          }}
+                        >
+                          [{index + 1}]{" "}
+                          {
+                            source.title
+                          }
+                        </a>
+                      )
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
-          </div>
+            </div>
 
-          {retrieved.length > 0 && (
-            <>
-              <button
-                onClick={() =>
-                  setEvOpen((v) => !v)
-                }
-                className="w-full flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium mb-3"
-                style={{
-                  background: TOKENS.mist,
-                  color: TOKENS.forest,
-                  border:
-                    `1px solid ${TOKENS.line}`,
-                }}
-              >
-                <span>
-                  {evOpen ? "▾" : "▸"} View
-                  retrieved evidence (
-                  {retrieved.length})
-                </span>
-
-                <span
-                  className="text-xs font-normal"
-                  style={{
-                    color: TOKENS.mute,
-                  }}
-                >
-                  via Fine-Tuned MuRIL + FAISS
-                </span>
-              </button>
-
-              {evOpen && (
-                <div className="space-y-3">
-                  {retrieved.map((item) => (
-                    <LiveEvidenceCard
-                      key={
-                        item.chunk_id ??
-                        `${item.rank}-${item.title}`
+            {retrieved.length >
+              0 && (
+                <>
+                  <button
+                    onClick={() =>
+                      setEvOpen(
+                        (v) => !v
+                      )
+                    }
+                    className="w-full flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium mb-3"
+                    style={{
+                      background:
+                        TOKENS.mist,
+                      color:
+                        TOKENS.forest,
+                      border:
+                        `1px solid ${TOKENS.line}`,
+                    }}
+                  >
+                    <span>
+                      {evOpen
+                        ? "▾"
+                        : "▸"}{" "}
+                      View retrieved
+                      evidence (
+                      {
+                        retrieved.length
                       }
-                      item={item}
-                    />
-                  ))}
-                </div>
+                      )
+                    </span>
+
+                    <span
+                      className="text-xs font-normal"
+                      style={{
+                        color:
+                          TOKENS.mute,
+                      }}
+                    >
+                      via Fine-Tuned MuRIL
+                      + FAISS
+                    </span>
+                  </button>
+
+                  {evOpen && (
+                    <div className="space-y-3">
+                      {retrieved.map(
+                        (item) => (
+                          <LiveEvidenceCard
+                            key={
+                              item.chunk_id ??
+                              `${item.rank}-${item.title}`
+                            }
+                            item={item}
+                          />
+                        )
+                      )}
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </>
-      )}
+          </>
+        )}
     </div>
   );
 }
@@ -949,9 +1083,8 @@ function AssistantPage() {
 /* ---------------- Page 2: Retrieval Analysis ---------------- */
 
 function AnalysisPage() {
-  const [query, setQuery] = useState(
-    DEMO_QUERIES[0].query
-  );
+  const [query, setQuery] =
+    useState(DEMO_QUERIES[0].query);
 
   const [activeQuery, setActiveQuery] =
     useState("");
@@ -965,7 +1098,9 @@ function AnalysisPage() {
   const [error, setError] =
     useState("");
 
-  const runRetrieval = async (question) => {
+  const runRetrieval = async (
+    question
+  ) => {
     const text = question ?? query;
 
     if (!text.trim() || loading) {
@@ -979,13 +1114,16 @@ function AnalysisPage() {
     setLoading(true);
 
     try {
-      const result = await retrievePassages(
-        text,
-        5
-      );
+      const result =
+        await retrievePassages(
+          text,
+          5
+        );
 
       setRetrieved(
-        Array.isArray(result.retrieved)
+        Array.isArray(
+          result.retrieved
+        )
           ? result.retrieved
           : []
       );
@@ -1007,7 +1145,8 @@ function AnalysisPage() {
           className="text-2xl font-medium mb-1.5"
           style={{
             color: TOKENS.forest,
-            fontFamily: "'Newsreader', serif",
+            fontFamily:
+              "'Newsreader', serif",
           }}
         >
           Retrieval Analysis
@@ -1015,7 +1154,9 @@ function AnalysisPage() {
 
         <p
           className="text-sm"
-          style={{ color: TOKENS.mute }}
+          style={{
+            color: TOKENS.mute,
+          }}
         >
           Inspect the real passages retrieved by
           Fine-Tuned MuRIL and FAISS.
@@ -1025,8 +1166,10 @@ function AnalysisPage() {
       <div
         className="rounded-2xl p-5 mb-5"
         style={{
-          background: TOKENS.paper,
-          border: `1px solid ${TOKENS.line}`,
+          background:
+            TOKENS.paper,
+          border:
+            `1px solid ${TOKENS.line}`,
         }}
       >
         <form
@@ -1040,12 +1183,15 @@ function AnalysisPage() {
             dir="auto"
             value={query}
             onChange={(e) =>
-              setQuery(e.target.value)
+              setQuery(
+                e.target.value
+              )
             }
             placeholder="Enter an agriculture question"
             className="flex-1 rounded-xl px-4 py-2.5 text-[15px] outline-none"
             style={{
-              border: `1px solid ${TOKENS.line}`,
+              border:
+                `1px solid ${TOKENS.line}`,
               color: TOKENS.ink,
               fontFamily:
                 "'Noto Sans Devanagari','Inter',sans-serif",
@@ -1057,9 +1203,12 @@ function AnalysisPage() {
             disabled={loading}
             className="px-5 py-2.5 rounded-xl text-sm font-medium"
             style={{
-              background: TOKENS.green,
+              background:
+                TOKENS.green,
               color: "#fff",
-              opacity: loading ? 0.7 : 1,
+              opacity: loading
+                ? 0.7
+                : 1,
             }}
           >
             Retrieve
@@ -1069,52 +1218,69 @@ function AnalysisPage() {
         <div className="flex flex-wrap items-center gap-2 mt-3">
           <span
             className="text-xs"
-            style={{ color: TOKENS.mute }}
+            style={{
+              color: TOKENS.mute,
+            }}
           >
             Try an example:
           </span>
 
-          {DEMO_QUERIES.map((d) => (
-            <button
-              key={d.id}
-              dir="auto"
-              onClick={() =>
-                runRetrieval(d.query)
-              }
-              className="text-xs px-2.5 py-1 rounded-full"
-              style={{
-                background: TOKENS.mist,
-                color: TOKENS.forest,
-                border: `1px solid ${TOKENS.line}`,
-                fontFamily:
-                  "'Noto Sans Devanagari','Inter',sans-serif",
-              }}
-            >
-              {d.query}
-            </button>
-          ))}
+          {DEMO_QUERIES.map(
+            (d) => (
+              <button
+                key={d.id}
+                dir="auto"
+                onClick={() =>
+                  runRetrieval(
+                    d.query
+                  )
+                }
+                className="text-xs px-2.5 py-1 rounded-full"
+                style={{
+                  background:
+                    TOKENS.mist,
+                  color:
+                    TOKENS.forest,
+                  border:
+                    `1px solid ${TOKENS.line}`,
+                  fontFamily:
+                    "'Noto Sans Devanagari','Inter',sans-serif",
+                }}
+              >
+                {d.query}
+              </button>
+            )
+          )}
         </div>
       </div>
 
       <div
         className="rounded-2xl p-5 sm:p-6 mb-8"
         style={{
-          background: TOKENS.mist,
-          border: `1px solid ${TOKENS.line}`,
+          background:
+            TOKENS.mist,
+          border:
+            `1px solid ${TOKENS.line}`,
         }}
       >
         <div
           className="text-xs font-medium mb-4"
-          style={{ color: TOKENS.mute }}
+          style={{
+            color: TOKENS.mute,
+          }}
         >
           Query → retrieval pipeline
         </div>
 
-        <PipelineDiagram steps={RETRIEVAL_STEPS} />
+        <PipelineDiagram
+          steps={RETRIEVAL_STEPS}
+        />
 
         <p
           className="text-xs mt-4"
-          style={{ color: TOKENS.mute }}
+          style={{
+            color: TOKENS.mute,
+          }}
         >
           <span
             style={{
@@ -1124,8 +1290,10 @@ function AnalysisPage() {
           >
             Fine-Tuned MuRIL
           </span>{" "}
-          produces the normalized query embedding
-          used to search the FAISS index.
+          is this project's core research
+          contribution — it produces the
+          domain-aware query embedding used
+          for FAISS retrieval.
         </p>
       </div>
 
@@ -1133,8 +1301,10 @@ function AnalysisPage() {
         <div
           className="rounded-xl p-6 flex items-center gap-3"
           style={{
-            background: TOKENS.mist,
-            border: `1px solid ${TOKENS.line}`,
+            background:
+              TOKENS.mist,
+            border:
+              `1px solid ${TOKENS.line}`,
           }}
         >
           <span
@@ -1142,16 +1312,19 @@ function AnalysisPage() {
             style={{
               border:
                 `2px solid ${TOKENS.greenLine}`,
-              borderTopColor: TOKENS.green,
+              borderTopColor:
+                TOKENS.green,
             }}
           />
 
           <span
             className="text-sm"
-            style={{ color: TOKENS.mute }}
+            style={{
+              color: TOKENS.mute,
+            }}
           >
-            Searching the Fine-Tuned MuRIL FAISS
-            index…
+            Searching the Fine-Tuned MuRIL
+            FAISS index…
           </span>
         </div>
       )}
@@ -1160,20 +1333,26 @@ function AnalysisPage() {
         <div
           className="rounded-xl p-5"
           style={{
-            background: TOKENS.amberLt,
-            border: `1px solid ${TOKENS.amber}`,
+            background:
+              TOKENS.amberLt,
+            border:
+              `1px solid ${TOKENS.amber}`,
           }}
         >
           <div
             className="text-sm font-medium"
-            style={{ color: TOKENS.ink }}
+            style={{
+              color: TOKENS.ink,
+            }}
           >
             Retrieval failed
           </div>
 
           <div
             className="text-sm mt-1"
-            style={{ color: TOKENS.mute }}
+            style={{
+              color: TOKENS.mute,
+            }}
           >
             {error}
           </div>
@@ -1187,7 +1366,9 @@ function AnalysisPage() {
             <div className="mb-4">
               <h3
                 className="text-sm font-semibold mb-1"
-                style={{ color: TOKENS.ink }}
+                style={{
+                  color: TOKENS.ink,
+                }}
               >
                 Top retrieved passages
               </h3>
@@ -1206,15 +1387,17 @@ function AnalysisPage() {
             </div>
 
             <div className="space-y-3">
-              {retrieved.map((item) => (
-                <LiveEvidenceCard
-                  key={
-                    item.chunk_id ??
-                    `${item.rank}-${item.title}`
-                  }
-                  item={item}
-                />
-              ))}
+              {retrieved.map(
+                (item) => (
+                  <LiveEvidenceCard
+                    key={
+                      item.chunk_id ??
+                      `${item.rank}-${item.title}`
+                    }
+                    item={item}
+                  />
+                )
+              )}
             </div>
           </>
         )}
@@ -1226,17 +1409,20 @@ function AnalysisPage() {
           <div
             className="rounded-2xl p-10 text-center"
             style={{
-              background: TOKENS.mist,
+              background:
+                TOKENS.mist,
               border:
                 `1px dashed ${TOKENS.line}`,
             }}
           >
             <p
               className="text-sm"
-              style={{ color: TOKENS.mute }}
+              style={{
+                color: TOKENS.mute,
+              }}
             >
-              Enter a question to inspect the real
-              FAISS retrieval results.
+              Enter a question to inspect the
+              real FAISS retrieval results.
             </p>
           </div>
         )}
@@ -1259,6 +1445,18 @@ function ComparisonPage() {
   const [error, setError] =
     useState("");
 
+  const [labeledAnswer, setLabeledAnswer] =
+    useState("");
+
+  const [
+    labeledAnswerLoading,
+    setLabeledAnswerLoading,
+  ] = useState(false);
+
+  const [
+    labeledSupportingText,
+    setLabeledSupportingText,
+  ] = useState("");
 
   const run = async (question) => {
     const text = question?.trim();
@@ -1270,25 +1468,83 @@ function ComparisonPage() {
     setCustomQuery(text);
     setActive(null);
     setError("");
+    setLabeledAnswer("");
+    setLabeledAnswerLoading(false);
+    setLabeledSupportingText("");
     setLoading(true);
 
+
     try {
-      const result = await compareModels(
-        text,
-        5
-      );
+      const result =
+        await compareModels(
+          text,
+          5
+        );
 
       setActive({
         query: text,
-        base: Array.isArray(result.base)
+
+        base: Array.isArray(
+          result.base
+        )
           ? result.base
           : [],
+
         finetuned: Array.isArray(
           result.finetuned
         )
           ? result.finetuned
           : [],
+
+        groundTruthAvailable:
+          result.ground_truth_available,
+
+        groundTruthInLiveCorpus:
+          result.ground_truth_in_live_corpus,
+
+        groundTruthChunkId:
+          result.ground_truth_chunk_id,
+
+        baseRank:
+          result.base_rank,
+
+        finetunedRank:
+          result.finetuned_rank,
+
+        rankCutoff:
+          result.rank_cutoff,
       });
+
+      // Retrieval comparison is finished.
+      // Gemini answer generation is separate.
+      if (result.ground_truth_available) {
+        setLabeledAnswerLoading(true);
+
+        getLabeledAnswer(text)
+          .then((answerResult) => {
+            if (
+              answerResult.available &&
+              answerResult.answer
+            ) {
+              setLabeledAnswer(
+                answerResult.answer
+              );
+
+              setLabeledSupportingText(
+                answerResult.supporting_text || ""
+              );
+            }
+          })
+          .catch((answerError) => {
+            console.error(
+              "Labeled answer generation failed:",
+              answerError
+            );
+          })
+          .finally(() => {
+            setLabeledAnswerLoading(false);
+          });
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -1300,11 +1556,9 @@ function ComparisonPage() {
     }
   };
 
-
   const runCustom = () => {
     run(customQuery);
   };
-
 
   return (
     <div className="max-w-5xl mx-auto px-5 py-10">
@@ -1322,18 +1576,20 @@ function ComparisonPage() {
 
         <p
           className="text-sm"
-          style={{ color: TOKENS.mute }}
+          style={{
+            color: TOKENS.mute,
+          }}
         >
           Compare live retrieval results for
           the same agriculture query.
         </p>
       </div>
 
-
       <div
         className="rounded-2xl p-5 mb-4"
         style={{
-          background: TOKENS.paper,
+          background:
+            TOKENS.paper,
           border:
             `1px solid ${TOKENS.line}`,
         }}
@@ -1372,7 +1628,8 @@ function ComparisonPage() {
             }
             className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
             style={{
-              background: TOKENS.green,
+              background:
+                TOKENS.green,
               color: "#fff",
             }}
           >
@@ -1381,7 +1638,6 @@ function ComparisonPage() {
               : "Compare models"}
           </button>
         </form>
-
 
         <div className="flex flex-wrap items-center gap-2 mt-3">
           <span
@@ -1393,39 +1649,41 @@ function ComparisonPage() {
             Try an example:
           </span>
 
-          {DEMO_QUERIES.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              dir="auto"
-              disabled={loading}
-              onClick={() =>
-                run(d.query)
-              }
-              className="text-xs px-2.5 py-1 rounded-full disabled:opacity-50"
-              style={{
-                background:
-                  TOKENS.mist,
-                color:
-                  TOKENS.forest,
-                border:
-                  `1px solid ${TOKENS.line}`,
-                fontFamily:
-                  "'Noto Sans Devanagari','Inter',sans-serif",
-              }}
-            >
-              {d.query}
-            </button>
-          ))}
+          {DEMO_QUERIES.map(
+            (d) => (
+              <button
+                key={d.id}
+                type="button"
+                dir="auto"
+                disabled={loading}
+                onClick={() =>
+                  run(d.query)
+                }
+                className="text-xs px-2.5 py-1 rounded-full disabled:opacity-50"
+                style={{
+                  background:
+                    TOKENS.mist,
+                  color:
+                    TOKENS.forest,
+                  border:
+                    `1px solid ${TOKENS.line}`,
+                  fontFamily:
+                    "'Noto Sans Devanagari','Inter',sans-serif",
+                }}
+              >
+                {d.query}
+              </button>
+            )
+          )}
         </div>
       </div>
-
 
       {loading && (
         <div
           className="rounded-xl p-6 flex items-center gap-3 mb-6"
           style={{
-            background: TOKENS.mist,
+            background:
+              TOKENS.mist,
             border:
               `1px solid ${TOKENS.line}`,
           }}
@@ -1452,7 +1710,6 @@ function ComparisonPage() {
         </div>
       )}
 
-
       {error && !loading && (
         <div
           className="rounded-xl p-4 mb-6 text-sm"
@@ -1467,13 +1724,13 @@ function ComparisonPage() {
         </div>
       )}
 
-
       {active && !loading && (
         <>
           <div
             className="rounded-xl p-4 mb-6"
             style={{
-              background: TOKENS.mist,
+              background:
+                TOKENS.mist,
               border:
                 `1px solid ${TOKENS.line}`,
             }}
@@ -1500,6 +1757,181 @@ function ComparisonPage() {
             </div>
           </div>
 
+          {active.groundTruthAvailable && (
+            <div
+              className="rounded-xl p-4 sm:p-5 mb-5"
+              style={{
+                background: TOKENS.greenLt,
+                border:
+                  `1px solid ${TOKENS.greenLine}`,
+              }}
+            >
+              <div
+                className="text-xs font-semibold mb-2"
+                style={{
+                  color: TOKENS.green,
+                }}
+              >
+                Generated answer from labeled passage
+              </div>
+
+              {labeledAnswerLoading ? (
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-3.5 h-3.5 rounded-full animate-spin flex-shrink-0"
+                    style={{
+                      border:
+                        `2px solid ${TOKENS.greenLine}`,
+                      borderTopColor:
+                        TOKENS.green,
+                    }}
+                  />
+
+                  <span
+                    className="text-sm"
+                    style={{
+                      color: TOKENS.mute,
+                    }}
+                  >
+                    Generating a short answer from the
+                    labeled V2 passage...
+                  </span>
+                </div>
+              ) : labeledAnswer ? (
+                <p
+                  dir="auto"
+                  className="text-[15px] leading-relaxed"
+                  style={{
+                    color: TOKENS.ink,
+                    fontFamily:
+                      "'Noto Sans Devanagari','Inter',sans-serif",
+                  }}
+                >
+                  {labeledAnswer}
+                </p>
+              ) : (
+                <p
+                  className="text-sm"
+                  style={{
+                    color: TOKENS.mute,
+                  }}
+                >
+                  A generated answer is not available
+                  for this labeled passage.
+                </p>
+              )}
+
+              <div
+                className="text-xs mt-3"
+                style={{
+                  color: TOKENS.mute,
+                }}
+              >
+                Gemini-generated using only the labeled
+                positive passage from the V2 test set.
+              </div>
+            </div>
+          )}
+          {/* Known labeled passage — live full-corpus rank */}
+          {active.groundTruthAvailable && (
+            <div
+              className="rounded-2xl p-5 mb-5"
+              style={{
+                background:
+                  TOKENS.paper,
+                border:
+                  `1px solid ${TOKENS.line}`,
+              }}
+            >
+              <div
+                className="text-xs font-medium mb-2"
+                style={{
+                  color: TOKENS.mute,
+                }}
+              >
+                Known labeled passage — live
+                full-corpus rank
+              </div>
+
+              <p
+                className="text-xs mb-4"
+                style={{
+                  color: TOKENS.mute,
+                }}
+              >
+                Live ranks are computed against
+                the current 17,391-passage FAISS
+                corpus and may differ from the
+                held-out V2 evaluation ranks shown
+                below.
+              </p>
+
+              {!active.groundTruthInLiveCorpus ? (
+                <div
+                  className="text-sm"
+                  style={{
+                    color: TOKENS.amber,
+                  }}
+                >
+                  The labeled ground-truth passage
+                  is not present in the current live
+                  corpus, so a live rank cannot be
+                  computed for this question.
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div>
+                    <div
+                      className="text-xs mb-1"
+                      style={{
+                        color: TOKENS.mute,
+                      }}
+                    >
+                      Base MuRIL
+                    </div>
+
+                    <div
+                      className="text-xl font-semibold"
+                      style={{
+                        color: TOKENS.amber,
+                        fontFamily:
+                          "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {active.baseRank
+                        ? `#${active.baseRank}`
+                        : `Not in Top-${active.rankCutoff}`}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div
+                      className="text-xs mb-1"
+                      style={{
+                        color: TOKENS.mute,
+                      }}
+                    >
+                      Fine-Tuned MuRIL
+                    </div>
+
+                    <div
+                      className="text-xl font-semibold"
+                      style={{
+                        color:
+                          TOKENS.green,
+                        fontFamily:
+                          "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {active.finetunedRank
+                        ? `#${active.finetunedRank}`
+                        : `Not in Top-${active.rankCutoff}`}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <p
             className="text-xs mb-6"
@@ -1508,13 +1940,11 @@ function ComparisonPage() {
             }}
           >
             Similarity scores belong to each
-            model's own embedding space.
-            Compare passage relevance and
-            ranking rather than comparing
-            Base and Fine-Tuned scores
-            directly.
+            model's own embedding space. Compare
+            passage relevance and ranking rather
+            than comparing Base and Fine-Tuned
+            scores directly.
           </p>
-
 
           <div className="grid md:grid-cols-2 gap-5">
             {/* Base MuRIL */}
@@ -1556,12 +1986,17 @@ function ComparisonPage() {
                         `base-${item.rank}`
                       }
                       item={item}
+                      groundTruthChunkId={
+                        active.groundTruthChunkId
+                      }
+                      supportingText={
+                        labeledSupportingText
+                      }
                     />
                   )
                 )}
               </div>
             </div>
-
 
             {/* Fine-Tuned MuRIL */}
             <div>
@@ -1587,7 +2022,8 @@ function ComparisonPage() {
                 <span
                   className="text-xs"
                   style={{
-                    color: TOKENS.mute,
+                    color:
+                      TOKENS.mute,
                   }}
                 >
                   agriculture-aware
@@ -1603,6 +2039,12 @@ function ComparisonPage() {
                         `finetuned-${item.rank}`
                       }
                       item={item}
+                      groundTruthChunkId={
+                        active.groundTruthChunkId
+                      }
+                      supportingText={
+                        labeledSupportingText
+                      }
                     />
                   )
                 )}
@@ -1612,14 +2054,14 @@ function ComparisonPage() {
         </>
       )}
 
-
       {!active &&
         !loading &&
         !error && (
           <div
             className="rounded-2xl p-10 text-center"
             style={{
-              background: TOKENS.mist,
+              background:
+                TOKENS.mist,
               border:
                 `1px dashed ${TOKENS.line}`,
             }}
@@ -1630,19 +2072,19 @@ function ComparisonPage() {
                 color: TOKENS.mute,
               }}
             >
-              Enter a query or pick an
-              example to retrieve passages
-              from both models.
+              Enter a query or pick an example
+              to retrieve passages from both
+              models.
             </p>
           </div>
         )}
-
 
       {/* Why fine-tune */}
       <div
         className="mt-12 rounded-2xl p-6 sm:p-8"
         style={{
-          background: TOKENS.paper,
+          background:
+            TOKENS.paper,
           border:
             `1px solid ${TOKENS.line}`,
         }}
@@ -1667,9 +2109,8 @@ function ComparisonPage() {
           Indian-language text generally.
           Fine-tuning teaches the encoder to
           place agriculture-related questions
-          closer to their relevant
-          agricultural passages in the
-          embedding space.
+          closer to their relevant agricultural
+          passages in the embedding space.
         </p>
 
         <div className="grid sm:grid-cols-2 gap-6">
@@ -1695,6 +2136,7 @@ function ComparisonPage() {
                   TOKENS.neutralInk
                 }
               />
+
               <text
                 x="30"
                 y="52"
@@ -1704,6 +2146,7 @@ function ComparisonPage() {
               >
                 Question
               </text>
+
               <line
                 x1="42"
                 y1="30"
@@ -1715,12 +2158,14 @@ function ComparisonPage() {
                 strokeWidth="2"
                 strokeDasharray="3 4"
               />
+
               <circle
                 cx="212"
                 cy="30"
                 r="7"
                 fill="#D7BB98"
               />
+
               <text
                 x="205"
                 y="52"
@@ -1753,6 +2198,7 @@ function ComparisonPage() {
                 r="7"
                 fill={TOKENS.green}
               />
+
               <text
                 x="90"
                 y="52"
@@ -1762,6 +2208,7 @@ function ComparisonPage() {
               >
                 Question
               </text>
+
               <line
                 x1="102"
                 y1="30"
@@ -1770,12 +2217,14 @@ function ComparisonPage() {
                 stroke={TOKENS.green}
                 strokeWidth="2"
               />
+
               <circle
                 cx="140"
                 cy="30"
                 r="7"
                 fill={TOKENS.forest}
               />
+
               <text
                 x="140"
                 y="52"
@@ -1790,12 +2239,12 @@ function ComparisonPage() {
         </div>
       </div>
 
-
       {/* Existing metrics section */}
       <div
         className="mt-6 rounded-2xl p-6 sm:p-8"
         style={{
-          background: TOKENS.paper,
+          background:
+            TOKENS.paper,
           border:
             `1px solid ${TOKENS.line}`,
         }}
@@ -1902,7 +2351,9 @@ function ComparisonPage() {
             color: TOKENS.mute,
           }}
         >
-          Higher is better. Results are from the V2 held-out agriculture retrieval evaluation.
+          Higher is better. Results are from the
+          V2 held-out agriculture retrieval
+          evaluation.
         </p>
       </div>
     </div>
@@ -1912,17 +2363,49 @@ function ComparisonPage() {
 /* ---------------- root ---------------- */
 
 export default function App() {
-  const [tab, setTab] = useState("assistant");
+  const [tab, setTab] =
+    useState("assistant");
+
   return (
-    <div style={{ background: TOKENS.paper, minHeight: "100vh", color: TOKENS.ink, fontFamily: "'Inter', sans-serif" }}>
+    <div
+      style={{
+        background:
+          TOKENS.paper,
+        minHeight: "100vh",
+        color: TOKENS.ink,
+        fontFamily:
+          "'Inter', sans-serif",
+      }}
+    >
       <style>{FONT_IMPORT}</style>
-      <NavBar tab={tab} setTab={setTab} />
-      {tab === "assistant" && <AssistantPage />}
-      {tab === "analysis" && <AnalysisPage />}
-      {tab === "compare" && <ComparisonPage />}
+
+      <NavBar
+        tab={tab}
+        setTab={setTab}
+      />
+
+      {tab === "assistant" && (
+        <AssistantPage />
+      )}
+
+      {tab === "analysis" && (
+        <AnalysisPage />
+      )}
+
+      {tab === "compare" && (
+        <ComparisonPage />
+      )}
+
       <footer className="max-w-6xl mx-auto px-5 sm:px-8 py-10 text-center">
-        <p className="text-xs" style={{ color: TOKENS.mute }}>
-          AgriSahayak AI · Live retrieval powered by Fine-Tuned MuRIL + FAISS · Answers generated using Gemini API or Local Qwen.
+        <p
+          className="text-xs"
+          style={{
+            color: TOKENS.mute,
+          }}
+        >
+          AgriSahayak AI · Live retrieval powered
+          by Fine-Tuned MuRIL + FAISS · Answers
+          generated using Gemini API or Local Qwen.
         </p>
       </footer>
     </div>
