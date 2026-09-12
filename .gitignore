@@ -10,4 +10,6 @@ data/chunks/
 data/scraped/
 logs/
 data/
+models/*.zip
+structure.txt
 models/
