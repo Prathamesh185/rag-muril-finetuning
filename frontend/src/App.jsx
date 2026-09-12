@@ -309,14 +309,15 @@ function LiveEvidenceCard({
 
         <span
           className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium"
+          title="Model-specific cosine similarity. Compare ranks, not scores across models."
           style={{
             background: TOKENS.mist,
-            color: TOKENS.ink,
+            color: TOKENS.mute,
             border: `1px solid ${TOKENS.line}`,
             fontFamily: "'JetBrains Mono', monospace",
           }}
         >
-          score&nbsp;{Number(item.score).toFixed(3)}
+          cosine&nbsp;{Number(item.score).toFixed(3)}
         </span>
       </div>
 
