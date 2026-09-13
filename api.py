@@ -131,6 +131,8 @@ class CompareResponse(BaseModel):
     ground_truth_in_live_corpus: bool
     ground_truth_chunk_id: str | None = None
 
+    is_test_question: bool
+
     base_rank: int | None = None
     finetuned_rank: int | None = None
 
@@ -191,6 +193,10 @@ def retrieve_passages(
 # DATA FILES
 # ==========================================================
 
+FULL_DATASET_FILE = Path(
+    "data/cleaned_v2/final_dataset_v2.csv"
+)
+
 TEST_FILE = Path(
     "data/training_v2/test.csv"
 )
@@ -198,16 +204,19 @@ TEST_FILE = Path(
 LIVE_METADATA_FILE = Path(
     "data/index/finetuned_metadata.csv"
 )
-
-
 # ==========================================================
 # GROUND-TRUTH LOOKUPS
 # ==========================================================
+def normalize_question(text: str):
+    return " ".join(
+        str(text).strip().split()
+    )
+
 
 @lru_cache(maxsize=1)
 def load_ground_truth_lookup():
     df = pd.read_csv(
-        TEST_FILE,
+        FULL_DATASET_FILE,
         usecols=[
             "question",
             "chunk_id",
@@ -217,9 +226,9 @@ def load_ground_truth_lookup():
     lookup = {}
 
     for _, row in df.iterrows():
-        question = str(
+        question = normalize_question(
             row["question"]
-        ).strip()
+        )
 
         chunk_id = str(
             row["chunk_id"]
@@ -230,11 +239,10 @@ def load_ground_truth_lookup():
 
     return lookup
 
-
 @lru_cache(maxsize=1)
 def load_labeled_passage_lookup():
     df = pd.read_csv(
-        TEST_FILE,
+        FULL_DATASET_FILE,
         usecols=[
             "question",
             "positive",
@@ -244,9 +252,9 @@ def load_labeled_passage_lookup():
     lookup = {}
 
     for _, row in df.iterrows():
-        question = str(
+        question = normalize_question(
             row["question"]
-        ).strip()
+        )
 
         positive = str(
             row["positive"]
@@ -280,8 +288,8 @@ def get_ground_truth_chunk_id(
     lookup = load_ground_truth_lookup()
 
     return lookup.get(
-        question.strip()
-    )
+    normalize_question(question)
+)
 
 
 def get_labeled_positive_passage(
@@ -290,9 +298,31 @@ def get_labeled_positive_passage(
     lookup = load_labeled_passage_lookup()
 
     return lookup.get(
-        question.strip()
+    normalize_question(question)
+)
+
+@lru_cache(maxsize=1)
+def load_test_question_set():
+    df = pd.read_csv(
+        TEST_FILE,
+        usecols=["question"],
     )
 
+    return {
+        normalize_question(question)
+        for question in df["question"]
+        .dropna()
+        .astype(str)
+    }
+
+
+def is_test_question(
+    question: str,
+):
+    return (
+        normalize_question(question)
+        in load_test_question_set()
+    )
 
 def find_result_rank(
     results,
@@ -334,6 +364,11 @@ def compare_models(
         ground_truth_chunk_id is not None
     )
 
+    held_out_test_question = (
+        is_test_question(
+            request.question
+        )
+    )
     ground_truth_in_live_corpus = (
         ground_truth_available
         and ground_truth_chunk_id
@@ -377,7 +412,6 @@ def compare_models(
     )
 
     return {
-        # UI receives only requested Top-K passages
         "base":
             base_all[:request.top_k],
 
@@ -392,6 +426,9 @@ def compare_models(
 
         "ground_truth_chunk_id":
             ground_truth_chunk_id,
+
+        "is_test_question":
+            held_out_test_question,
 
         "base_rank":
             base_rank,

@@ -93,7 +93,7 @@ print(f"Final passages : {len(df):,}")
 # ==========================================================
 
 print("\n" + "=" * 60)
-print("Encoding passages using Fine-Tuned MuRIL V2...")
+print("Encoding passages using Fine-Tuned MuRIL V3...")
 print("=" * 60)
 
 embeddings = encoder.encode(

@@ -8,9 +8,8 @@ from rag.config import encoder
 # CONFIG
 # ==========================================================
 
-INDEX_FILE = "data/index/finetuned.faiss"
-METADATA_FILE = "data/index/finetuned_metadata.csv"
-
+INDEX_FILE = "data/index/finetuned_v3.faiss"
+METADATA_FILE = "data/index/finetuned_metadata_v2.csv"
 
 # ==========================================================
 # LOAD FAISS + METADATA

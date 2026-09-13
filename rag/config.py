@@ -15,7 +15,7 @@ client = genai.Client(
 
 
 # Fine-tuned MuRIL V2
-ENCODER_PATH = "models/fine_tuned_muril_v2"
+ENCODER_PATH = "models/fine_tuned_muril_v3"
 
 encoder = SentenceTransformer(
     ENCODER_PATH
@@ -23,7 +23,7 @@ encoder = SentenceTransformer(
 
 encoder.max_seq_length = 256
 
-print("Fine-tuned MuRIL loaded.")
+print("Fine-tuned MuRIL V3 loaded.")
 print(
     "Embedding dimension:",
     encoder.get_embedding_dimension()
