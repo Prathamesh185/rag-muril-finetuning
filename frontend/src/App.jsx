@@ -70,29 +70,64 @@ const RETRIEVAL_STEPS = [
 ];
 
 const METRICS = [
-  { metric: "Accuracy@1", base: "21.46%", tuned: "70.10%" },
-  { metric: "Recall@5", base: "39.39%", tuned: "93.18%" },
-  { metric: "Recall@10", base: "48.84%", tuned: "96.62%" },
-  { metric: "MRR@10", base: "0.2919", tuned: "0.7999" },
-  { metric: "NDCG@10", base: "0.3383", tuned: "0.8410" },
+  {
+    metric: "Accuracy@1",
+    base: "21.46%",
+    v2: "70.10%",
+    v3: "74.90%",
+    e5: "73.28%",
+    bge: "69.75%",
+  },
+  {
+    metric: "Recall@5",
+    base: "39.39%",
+    v2: "93.18%",
+    v3: "94.34%",
+    e5: "93.03%",
+    bge: "90.86%",
+  },
+  {
+    metric: "Recall@10",
+    base: "48.84%",
+    v2: "96.62%",
+    v3: "97.32%",
+    e5: "96.11%",
+    bge: "94.90%",
+  },
+  {
+    metric: "MRR@10",
+    base: "0.2919",
+    v2: "0.7999",
+    v3: "0.8331",
+    e5: "0.8196",
+    bge: "0.7889",
+  },
+  {
+    metric: "NDCG@10",
+    base: "0.3383",
+    v2: "0.8410",
+    v3: "0.8677",
+    e5: "0.8546",
+    bge: "0.8281",
+  },
 ];
 
 const DEMO_QUERIES = [
   {
-    id: "carnation",
-    query:
-      "कारनेशन की व्यावसायिक खेती भारत में किन स्थानों पर की जाती है?",
-  },
-  {
-    id: "gladiolus",
-    query:
-      "ग्लेडियोलस की रोपाई के लिए किस व्यास के कंद उपयुक्त होते हैं?",
-  },
-  {
     id: "soil-ph",
     query:
-      "मिट्टी के pH मान को उदासीन स्तर पर लाने के लिए प्रति हेक्टेयर कितने क्विंटल चूने की आवश्यकता होती है?",
+      "गेहूँ की अच्छी उपज के लिए प्रति हेक्टेयर कितनी नत्रजन की आवश्यकता होती है?",
   },
+  {
+    id: "sunflower-pest",
+    query:
+      "सूरजमुखी की फसल में कीट नियंत्रण के लिए किस रसायन का छिड़काव करना चाहिए?",
+  },
+  {
+    id: "garlic-oil",
+    query:
+      "लहसुन का तेल किस विधि से प्राप्त किया जाता है?",
+  }
 ];
 
 /* ---------------- shared UI atoms ---------------- */
@@ -539,7 +574,7 @@ function NavBar({ tab, setTab }) {
             className="hidden md:inline text-xs"
             style={{ color: TOKENS.mute }}
           >
-            Agriculture-Aware RAG using Fine-Tuned MuRIL
+            Agriculture-Aware RAG using Fine-Tuned MuRIL V3
           </span>
         </div>
 
@@ -1572,7 +1607,7 @@ function ComparisonPage() {
               "'Newsreader', serif",
           }}
         >
-          Base MuRIL vs Fine-Tuned MuRIL
+          Base MuRIL vs Fine-Tuned MuRIL V3
         </h2>
 
         <p
@@ -1728,111 +1763,120 @@ function ComparisonPage() {
       {active && !loading && (
         <>
           <div
-            className="rounded-xl p-4 mb-6"
+            className="rounded-2xl overflow-hidden mb-5"
             style={{
-              background:
-                TOKENS.mist,
-              border:
-                `1px solid ${TOKENS.line}`,
+              background: TOKENS.paper,
+              border: `1px solid ${TOKENS.line}`,
             }}
           >
-            <div
-              className="text-xs mb-1"
-              style={{
-                color: TOKENS.mute,
-              }}
-            >
-              Query
-            </div>
-
-            <div
-              dir="auto"
-              className="text-sm font-medium"
-              style={{
-                color: TOKENS.ink,
-                fontFamily:
-                  "'Noto Sans Devanagari','Inter',sans-serif",
-              }}
-            >
-              {active.query}
-            </div>
-          </div>
-
-          {active.groundTruthAvailable && (
-            <div
-              className="rounded-xl p-4 sm:p-5 mb-5"
-              style={{
-                background: TOKENS.greenLt,
-                border:
-                  `1px solid ${TOKENS.greenLine}`,
-              }}
-            >
+            {/* Query */}
+            <div className="p-5 sm:p-6">
               <div
-                className="text-xs font-semibold mb-2"
-                style={{
-                  color: TOKENS.green,
-                }}
-              >
-                Generated answer from labeled passage
-              </div>
-
-              {labeledAnswerLoading ? (
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-3.5 h-3.5 rounded-full animate-spin flex-shrink-0"
-                    style={{
-                      border:
-                        `2px solid ${TOKENS.greenLine}`,
-                      borderTopColor:
-                        TOKENS.green,
-                    }}
-                  />
-
-                  <span
-                    className="text-sm"
-                    style={{
-                      color: TOKENS.mute,
-                    }}
-                  >
-                    Generating a short answer from the
-                    labeled V2 passage...
-                  </span>
-                </div>
-              ) : labeledAnswer ? (
-                <p
-                  dir="auto"
-                  className="text-[15px] leading-relaxed"
-                  style={{
-                    color: TOKENS.ink,
-                    fontFamily:
-                      "'Noto Sans Devanagari','Inter',sans-serif",
-                  }}
-                >
-                  {labeledAnswer}
-                </p>
-              ) : (
-                <p
-                  className="text-sm"
-                  style={{
-                    color: TOKENS.mute,
-                  }}
-                >
-                  A generated answer is not available
-                  for this labeled passage.
-                </p>
-              )}
-
-              <div
-                className="text-xs mt-3"
+                className="text-xs font-medium mb-2"
                 style={{
                   color: TOKENS.mute,
                 }}
               >
-                Gemini-generated using only the labeled
-                positive passage from the V2 test set.
+                Query
+              </div>
+
+              <div
+                dir="auto"
+                className="text-[17px] sm:text-[18px] font-medium leading-relaxed"
+                style={{
+                  color: TOKENS.ink,
+                  fontFamily:
+                    "'Noto Sans Devanagari','Inter',sans-serif",
+                }}
+              >
+                {active.query}
               </div>
             </div>
-          )}
+
+            {active.groundTruthAvailable && (
+              <>
+                <div
+                  style={{
+                    borderTop:
+                      `1px solid ${TOKENS.line}`,
+                  }}
+                />
+
+                {/* Generated answer */}
+                <div
+                  className="p-5 sm:p-6"
+                  style={{
+                    background: TOKENS.greenLt,
+                  }}
+                >
+                  <div
+                    className="text-xs font-semibold mb-2"
+                    style={{
+                      color: TOKENS.green,
+                    }}
+                  >
+                    Generated answer from labeled passage
+                  </div>
+
+                  {labeledAnswerLoading ? (
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-3.5 h-3.5 rounded-full animate-spin flex-shrink-0"
+                        style={{
+                          border:
+                            `2px solid ${TOKENS.greenLine}`,
+                          borderTopColor:
+                            TOKENS.green,
+                        }}
+                      />
+
+                      <span
+                        className="text-sm"
+                        style={{
+                          color: TOKENS.mute,
+                        }}
+                      >
+                        Generating a short answer from the
+                        labeled dataset passage...
+                      </span>
+                    </div>
+                  ) : labeledAnswer ? (
+                    <p
+                      dir="auto"
+                      className="text-[16px] leading-relaxed font-medium"
+                      style={{
+                        color: TOKENS.ink,
+                        fontFamily:
+                          "'Noto Sans Devanagari','Inter',sans-serif",
+                      }}
+                    >
+                      {labeledAnswer}
+                    </p>
+                  ) : (
+                    <p
+                      className="text-sm"
+                      style={{
+                        color: TOKENS.mute,
+                      }}
+                    >
+                      A generated answer is not available
+                      for this labeled passage.
+                    </p>
+                  )}
+
+                  <div
+                    className="text-xs mt-3"
+                    style={{
+                      color: TOKENS.mute,
+                    }}
+                  >
+                    Gemini-generated using only the labeled
+                    positive passage for this dataset question.
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           {/* Known labeled passage — live full-corpus rank */}
           {active.groundTruthAvailable && (
             <div
@@ -1863,7 +1907,7 @@ function ComparisonPage() {
                 Live ranks are computed against
                 the current 17,391-passage FAISS
                 corpus and may differ from the
-                held-out V2 evaluation ranks shown
+                held-out evaluation ranks shown
                 below.
               </p>
 
@@ -1912,7 +1956,7 @@ function ComparisonPage() {
                         color: TOKENS.mute,
                       }}
                     >
-                      Fine-Tuned MuRIL
+                      Fine-Tuned MuRIL V3
                     </div>
 
                     <div
@@ -2017,7 +2061,7 @@ function ComparisonPage() {
                       TOKENS.forest,
                   }}
                 >
-                  Fine-Tuned MuRIL
+                  Fine-Tuned MuRIL V3
                 </span>
 
                 <span
@@ -2027,7 +2071,7 @@ function ComparisonPage() {
                       TOKENS.mute,
                   }}
                 >
-                  agriculture-aware
+                  MNRL + hard negatives
                 </span>
               </div>
 
@@ -2256,7 +2300,7 @@ function ComparisonPage() {
             color: TOKENS.forest,
           }}
         >
-          V2 in-domain retrieval evaluation
+          Held-out agriculture retrieval evaluation
         </h3>
 
         <div className="overflow-x-auto">
@@ -2264,36 +2308,49 @@ function ComparisonPage() {
             <thead>
               <tr
                 style={{
-                  borderBottom:
-                    `1px solid ${TOKENS.line}`,
+                  borderBottom: `1px solid ${TOKENS.line}`,
                 }}
               >
                 <th
                   className="text-left py-2 font-medium"
-                  style={{
-                    color: TOKENS.mute,
-                  }}
+                  style={{ color: TOKENS.mute }}
                 >
                   Metric
                 </th>
 
                 <th
                   className="text-right py-2 font-medium"
-                  style={{
-                    color: TOKENS.mute,
-                  }}
+                  style={{ color: TOKENS.mute }}
                 >
                   Base MuRIL
                 </th>
 
                 <th
                   className="text-right py-2 font-medium"
-                  style={{
-                    color:
-                      TOKENS.forest,
-                  }}
+                  style={{ color: TOKENS.mute }}
                 >
-                  Fine-Tuned MuRIL
+                  MuRIL V2
+                </th>
+
+                <th
+                  className="text-right py-2 font-semibold"
+                  style={{ color: TOKENS.green }}
+                >
+                  MuRIL V3
+                </th>
+
+                <th
+                  className="text-right py-2 font-medium"
+                  style={{ color: TOKENS.mute }}
+                >
+                  E5-base
+                </th>
+
+                <th
+                  className="text-right py-2 font-medium"
+                  style={{ color: TOKENS.mute }}
+                >
+                  BGE-M3
                 </th>
               </tr>
             </thead>
@@ -2303,16 +2360,12 @@ function ComparisonPage() {
                 <tr
                   key={m.metric}
                   style={{
-                    borderBottom:
-                      `1px solid ${TOKENS.line}`,
+                    borderBottom: `1px solid ${TOKENS.line}`,
                   }}
                 >
                   <td
                     className="py-2.5"
-                    style={{
-                      color:
-                        TOKENS.ink,
-                    }}
+                    style={{ color: TOKENS.ink }}
                   >
                     {m.metric}
                   </td>
@@ -2320,8 +2373,7 @@ function ComparisonPage() {
                   <td
                     className="py-2.5 text-right"
                     style={{
-                      color:
-                        TOKENS.mute,
+                      color: TOKENS.mute,
                       fontFamily:
                         "'JetBrains Mono', monospace",
                     }}
@@ -2330,15 +2382,47 @@ function ComparisonPage() {
                   </td>
 
                   <td
-                    className="py-2.5 text-right font-medium"
+                    className="py-2.5 text-right"
                     style={{
-                      color:
-                        TOKENS.green,
+                      color: TOKENS.mute,
                       fontFamily:
                         "'JetBrains Mono', monospace",
                     }}
                   >
-                    {m.tuned}
+                    {m.v2}
+                  </td>
+
+                  <td
+                    className="py-2.5 text-right font-semibold"
+                    style={{
+                      color: TOKENS.green,
+                      fontFamily:
+                        "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    {m.v3}
+                  </td>
+
+                  <td
+                    className="py-2.5 text-right"
+                    style={{
+                      color: TOKENS.mute,
+                      fontFamily:
+                        "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    {m.e5}
+                  </td>
+
+                  <td
+                    className="py-2.5 text-right"
+                    style={{
+                      color: TOKENS.mute,
+                      fontFamily:
+                        "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    {m.bge}
                   </td>
                 </tr>
               ))}
@@ -2352,8 +2436,8 @@ function ComparisonPage() {
             color: TOKENS.mute,
           }}
         >
-          Higher is better. Results are from the
-          V2 held-out agriculture retrieval
+          Higher is better. All models are evaluated
+          on the same held-out agriculture retrieval set.
           evaluation.
         </p>
       </div>
@@ -2405,7 +2489,7 @@ export default function App() {
           }}
         >
           AgriSahayak AI · Live retrieval powered
-          by Fine-Tuned MuRIL + FAISS · Answers
+          by Fine-Tuned MuRIL V3 + FAISS · Answers
           generated using Gemini API or Local Qwen.
         </p>
       </footer>
