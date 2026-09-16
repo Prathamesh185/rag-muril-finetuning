@@ -45,7 +45,7 @@ const TOKENS = {
 };
 
 const EXAMPLES = [
-  "गेहूं की पहली सिंचाई कब करनी चाहिए?",
+  "हल्दी की फसल में थ्रिप्स कीट से बचाव के लिए किस दवा का छिड़काव करें?",
   "धान में कीट नियंत्रण कैसे करें?",
   "जीवामृत कैसे तैयार करें?",
   "प्राकृतिक खेती के क्या लाभ हैं?",
@@ -53,17 +53,15 @@ const EXAMPLES = [
 
 const PIPELINE_STEPS = [
   "User Query",
-  "Fine-Tuned MuRIL",
-  "Query Embedding",
+  "Fine-Tuned MuRIL V3",
   "FAISS",
-  "Top-K Passages",
   "LLM",
   "Grounded Answer",
 ];
 
 const RETRIEVAL_STEPS = [
   "User Query",
-  "Fine-Tuned MuRIL",
+  "Fine-Tuned MuRIL V3",
   "Query Embedding",
   "FAISS",
   "Top-K Passages",
@@ -161,6 +159,164 @@ function SimBadge({ value }) {
       cos sim {value.toFixed(2)}
     </span>
   );
+}
+
+function formatAnswer(text) {
+  if (!text) return text;
+
+  const parts = text.split(/\*\*(.*?)\*\*/g);
+
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <mark
+        key={i}
+        style={{
+          background: TOKENS.greenLt,
+          color: TOKENS.forest,
+          padding: "1px 4px",
+          borderRadius: "4px",
+          fontWeight: 600,
+        }}
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
+function extractHighlightedPhrases(text) {
+  if (!text) return [];
+
+  const matches = [...text.matchAll(/\*\*(.*?)\*\*/g)];
+
+  return [
+    ...new Set(
+      matches
+        .map((match) => match[1].trim())
+        .filter((phrase) => phrase.length >= 3)
+    ),
+  ];
+}
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getEvidenceCandidates(phrase) {
+  const candidates = [];
+
+  const clean = phrase
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!clean) return candidates;
+
+  // 1. Try complete phrase first
+  candidates.push(clean);
+
+  // 2. Extract useful number/range expressions
+  // Examples:
+  // "6.5 से 7.5"
+  // "20-25 दिन"
+  // "18-20 दिनों"
+  const numericMatches = clean.match(
+    /\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?(?:\s+(?:से|तक)\s+\d+(?:\.\d+)?)?(?:\s+(?:दिन|दिनों|प्रतिशत|किलो|किग्रा|लीटर|हेक्टेयर))?/g
+  );
+
+  if (numericMatches) {
+    numericMatches.forEach((match) => {
+      if (match.trim().length >= 3) {
+        candidates.push(match.trim());
+      }
+    });
+  }
+
+  // 3. Try meaningful word groups if full phrase failed
+  const words = clean.split(/\s+/);
+
+  // Prefer longer chunks first
+  for (let size = Math.min(4, words.length); size >= 2; size--) {
+    for (let i = 0; i <= words.length - size; i++) {
+      const chunk = words.slice(i, i + size).join(" ");
+
+      if (chunk.length >= 5) {
+        candidates.push(chunk);
+      }
+    }
+  }
+
+  return [...new Set(candidates)];
+}
+
+
+function highlightEvidenceText(text, phrases) {
+  if (
+    !text ||
+    !Array.isArray(phrases) ||
+    phrases.length === 0
+  ) {
+    return text;
+  }
+
+  const matches = [];
+
+  phrases.forEach((phrase) => {
+    const candidates = getEvidenceCandidates(phrase);
+
+    // Pick only the first / strongest candidate
+    // that actually exists in this passage
+    const found = candidates.find((candidate) =>
+      text.toLowerCase().includes(candidate.toLowerCase())
+    );
+
+    if (found) {
+      matches.push(found);
+    }
+  });
+
+  const uniqueMatches = [
+    ...new Set(matches)
+  ].sort((a, b) => b.length - a.length);
+
+  if (uniqueMatches.length === 0) {
+    return text;
+  }
+
+  const regex = new RegExp(
+    `(${uniqueMatches
+      .map(escapeRegExp)
+      .join("|")})`,
+    "gi"
+  );
+
+  const matchSet = new Set(
+    uniqueMatches.map((item) =>
+      item.toLowerCase()
+    )
+  );
+
+  return text.split(regex).map((part, index) => {
+    if (matchSet.has(part.toLowerCase())) {
+      return (
+        <mark
+          key={`${index}-${part}`}
+          style={{
+            background: "#BFE8C9",
+            color: TOKENS.forest,
+            padding: "1px 3px",
+            borderRadius: 3,
+            fontWeight: 600,
+          }}
+        >
+          {part}
+        </mark>
+      );
+    }
+
+    return part;
+  });
 }
 
 function EvidenceCard({ item, accent }) {
@@ -272,7 +428,7 @@ function EvidenceCard({ item, accent }) {
           href="https://vikaspedia.in"
           target="_blank"
           rel="noreferrer"
-          className="text-xs font-medium hover:underline"
+          className="text-xs font-medium hover:underline cursor-pointer"
           style={{ color: TOKENS.green }}
         >
           View source →
@@ -282,23 +438,29 @@ function EvidenceCard({ item, accent }) {
   );
 }
 
+const SOURCE_LABELS = {
+  vikaspedia_hindi: "Vikaspedia (Hindi)",
+};
+
 function LiveEvidenceCard({
   item,
   groundTruthChunkId = null,
   supportingText = "",
+  highlightPhrases = [],
 }) {
   const isGroundTruth =
     Boolean(groundTruthChunkId) &&
     item.chunk_id === groundTruthChunkId;
 
-  const shouldHighlight =
-    isGroundTruth &&
-    supportingText &&
-    item.text.includes(supportingText);
+  const phrasesToHighlight = [
+    ...(Array.isArray(highlightPhrases)
+      ? highlightPhrases
+      : []),
 
-  const highlightIndex = shouldHighlight
-    ? item.text.indexOf(supportingText)
-    : -1;
+    ...(isGroundTruth && supportingText
+      ? [supportingText]
+      : []),
+  ];
 
   return (
     <div
@@ -365,32 +527,9 @@ function LiveEvidenceCard({
             "'Noto Sans Devanagari','Inter',sans-serif",
         }}
       >
-        {shouldHighlight ? (
-          <>
-            {item.text.slice(
-              0,
-              highlightIndex
-            )}
-
-            <mark
-              style={{
-                background: "#BFE8C9",
-                color: TOKENS.forest,
-                padding: "1px 3px",
-                borderRadius: 3,
-                fontWeight: 600,
-              }}
-            >
-              {supportingText}
-            </mark>
-
-            {item.text.slice(
-              highlightIndex +
-              supportingText.length
-            )}
-          </>
-        ) : (
-          item.text
+        {highlightEvidenceText(
+          item.text,
+          phrasesToHighlight
         )}
       </p>
 
@@ -399,7 +538,7 @@ function LiveEvidenceCard({
           className="text-xs"
           style={{ color: TOKENS.mute }}
         >
-          Source: {item.source || "Unknown"}
+          Source: {SOURCE_LABELS[item.source] || item.source || "Unknown"}
         </span>
 
         {item.url && (
@@ -407,7 +546,7 @@ function LiveEvidenceCard({
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-medium hover:underline"
+            className="text-xs font-medium hover:underline cursor-pointer"
             style={{ color: TOKENS.green }}
           >
             View source →
@@ -420,12 +559,22 @@ function LiveEvidenceCard({
 
 function PipelineDiagram({
   compact,
+  wrap = false,
+  noScroll = false,
   steps = PIPELINE_STEPS,
 }) {
   return (
-    <div className="flex items-center overflow-x-auto gap-1.5 pb-1">
+    <div
+      className={
+        wrap
+          ? "flex flex-wrap items-center justify-center gap-1.5"
+          : noScroll
+            ? "flex items-center justify-center gap-1.5"
+            : "flex items-center overflow-x-auto gap-1.5 pb-1"
+      }
+    >
       {steps.map((step, i) => {
-        const isHero = step === "Fine-Tuned MuRIL";
+        const isHero = step.startsWith("Fine-Tuned MuRIL");
 
         return (
           <div
@@ -485,6 +634,11 @@ function RankBar({
     100 - ((rank - 1) / maxRank) * 100
   );
 
+  const rankLabel =
+    rank > maxRank
+      ? `Not in Top-${maxRank}`
+      : `#${rank}`;
+
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1.5">
@@ -505,7 +659,7 @@ function RankBar({
               "'JetBrains Mono', monospace",
           }}
         >
-          #{rank} {isWinner && "✓"}
+          {rankLabel} {isWinner && "✓"}
         </span>
       </div>
 
@@ -525,6 +679,65 @@ function RankBar({
           }}
         />
       </div>
+    </div>
+  );
+}
+
+function ResearchProofStrip() {
+  const stats = [
+    {
+      label: "Accuracy@1",
+      value: "74.90%",
+      note: "Final MuRIL V3",
+    },
+    {
+      label: "MRR@10",
+      value: "0.8331",
+      note: "Held-out test set",
+    },
+    {
+      label: "OUTPERFORMS E5-BASE",
+      value: "+1.62 pp",
+      note: "Accuracy@1",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {stats.map((stat) => (
+        <div
+          key={stat.label}
+          className="rounded-xl border px-4 py-3 text-center"
+          style={{
+            borderColor: TOKENS.line,
+            background: TOKENS.paper,
+          }}
+        >
+          <p
+            className="text-[11px] uppercase tracking-wide font-medium"
+            style={{ color: TOKENS.mute }}
+          >
+            {stat.label}
+          </p>
+
+          <p
+            className="text-xl font-semibold mt-1"
+            style={{
+              color: TOKENS.green,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            {stat.value}
+          </p>
+
+          <p
+            className="text-[11px] mt-1"
+            style={{ color: TOKENS.mute }}
+          >
+            {stat.note}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -588,7 +801,7 @@ function NavBar({ tab, setTab }) {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors"
+              className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer"
               style={{
                 background:
                   tab === t.id
@@ -615,7 +828,7 @@ function NavBar({ tab, setTab }) {
 
 /* ---------------- Page 1: AI Assistant ---------------- */
 
-function AssistantPage() {
+function AssistantPage({ setTab }) {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] =
     useState(null);
@@ -708,6 +921,9 @@ function AssistantPage() {
     ).values()
   );
 
+  const answerHighlightPhrases =
+    extractHighlightedPhrases(answer);
+
   if (!submitted) {
     return (
       <div className="relative">
@@ -723,7 +939,7 @@ function AssistantPage() {
           }}
         />
 
-        <div className="max-w-2xl mx-auto px-5 pt-20 pb-24 text-center">
+        <div className="max-w-2xl mx-auto px-5 pt-16 pb-10 text-center">
           <h1
             className="text-[34px] sm:text-[42px] leading-tight font-medium mb-3"
             style={{
@@ -736,7 +952,7 @@ function AssistantPage() {
           </h1>
 
           <p
-            className="text-[15px] mb-8"
+            className="text-[15px] mb-6"
             style={{
               color: TOKENS.mute,
             }}
@@ -746,13 +962,21 @@ function AssistantPage() {
             agricultural knowledge.
           </p>
 
+          <p
+            className="text-xs font-medium mb-8 inline-flex items-center gap-1.5"
+            style={{ color: TOKENS.green }}
+          >
+            Retrieval powered by MuRIL V3 — fine-tuned on Hindi agriculture data
+            and outperforming E5-base and BGE-M3 on the held-out test set
+          </p>
+
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {EXAMPLES.map((ex) => (
               <button
                 key={ex}
                 dir="auto"
                 onClick={() => ask(ex)}
-                className="px-3.5 py-2 rounded-full text-sm transition-colors"
+                className="px-3.5 py-2 rounded-full text-sm transition-colors cursor-pointer"
                 style={{
                   background:
                     TOKENS.paper,
@@ -767,7 +991,6 @@ function AssistantPage() {
               </button>
             ))}
           </div>
-
           <div className="mb-3 flex items-center justify-between gap-3">
             <span
               className="text-xs font-medium"
@@ -775,7 +998,7 @@ function AssistantPage() {
                 color: TOKENS.mute,
               }}
             >
-              Answer model
+              Generate answer with
             </span>
 
             <select
@@ -785,7 +1008,7 @@ function AssistantPage() {
                   e.target.value
                 )
               }
-              className="text-sm rounded-lg px-3 py-2 outline-none"
+              className="text-sm rounded-lg px-3 py-2 outline-none cursor-pointer"
               style={{
                 background:
                   TOKENS.paper,
@@ -833,22 +1056,9 @@ function AssistantPage() {
             />
 
             <button
-              type="button"
-              title="Voice input — coming soon"
-              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl"
-              style={{
-                color: TOKENS.mute,
-                border:
-                  `1px solid ${TOKENS.line}`,
-              }}
-            >
-              🎙
-            </button>
-
-            <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2.5 rounded-xl text-sm font-medium flex-shrink-0"
+              className="px-4 py-2.5 rounded-xl text-sm font-medium flex-shrink-0 cursor-pointer disabled:cursor-not-allowed"
               style={{
                 background:
                   TOKENS.green,
@@ -861,6 +1071,48 @@ function AssistantPage() {
               Ask
             </button>
           </form>
+
+          <div className="mt-8 mb-6">
+            <ResearchProofStrip />
+          </div>
+
+          <div
+            className="rounded-2xl p-4 sm:p-5 mb-4 text-left"
+            style={{
+              background: TOKENS.mist,
+              border: `1px solid ${TOKENS.line}`,
+            }}
+          >
+            <div
+              className="text-xs font-medium mb-3"
+              style={{ color: TOKENS.mute }}
+            >
+              How AgriSahayak works
+            </div>
+            <PipelineDiagram compact noScroll steps={PIPELINE_STEPS} />
+          </div>
+
+          <p
+            className="text-xs text-center"
+            style={{ color: TOKENS.mute }}
+          >
+            See Base MuRIL vs Fine-Tuned MuRIL V3 side-by-side in{" "}
+            <button
+              type="button"
+              onClick={() => setTab("compare")}
+              className="font-semibold hover:underline cursor-pointer"
+              style={{ color: TOKENS.green }}
+            >
+              Model Comparison →
+            </button>
+          </p>
+
+          <p
+            className="text-[11px] mt-4"
+            style={{ color: TOKENS.mute }}
+          >
+            Built and evaluated on 20,141 Hindi agriculture question–passage pairs.
+          </p>
         </div>
       </div>
     );
@@ -870,7 +1122,7 @@ function AssistantPage() {
     <div className="max-w-2xl mx-auto px-5 py-10">
       <button
         onClick={resetQuestion}
-        className="text-xs font-medium mb-6"
+        className="text-xs font-medium mb-6 cursor-pointer"
         style={{
           color: TOKENS.mute,
         }}
@@ -906,7 +1158,7 @@ function AssistantPage() {
             color: TOKENS.mute,
           }}
         >
-          Model: {modelChoice}
+          Generated with: {modelChoice}
         </div>
       </div>
 
@@ -992,9 +1244,10 @@ function AssistantPage() {
                   color: TOKENS.ink,
                   fontFamily:
                     "'Noto Sans Devanagari','Inter',sans-serif",
+                  whiteSpace: "pre-line",
                 }}
               >
-                {answer}
+                {formatAnswer(answer)}
               </p>
 
               {uniqueSources.length >
@@ -1031,7 +1284,7 @@ function AssistantPage() {
                           target="_blank"
                           rel="noreferrer"
                           dir="auto"
-                          className="text-xs font-medium px-2.5 py-1 rounded-full hover:underline"
+                          className="text-xs font-medium px-2.5 py-1 rounded-full hover:underline cursor-pointer"
                           style={{
                             background:
                               TOKENS.greenLt,
@@ -1059,7 +1312,7 @@ function AssistantPage() {
                         (v) => !v
                       )
                     }
-                    className="w-full flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium mb-3"
+                    className="w-full flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium mb-3 cursor-pointer"
                     style={{
                       background:
                         TOKENS.mist,
@@ -1088,8 +1341,7 @@ function AssistantPage() {
                           TOKENS.mute,
                       }}
                     >
-                      via Fine-Tuned MuRIL
-                      + FAISS
+                      via Fine-Tuned MuRIL V3 + FAISS
                     </span>
                   </button>
 
@@ -1103,11 +1355,15 @@ function AssistantPage() {
                               `${item.rank}-${item.title}`
                             }
                             item={item}
+                            highlightPhrases={
+                              answerHighlightPhrases
+                            }
                           />
                         )
                       )}
                     </div>
                   )}
+
                 </>
               )}
           </>
@@ -1237,7 +1493,7 @@ function AnalysisPage() {
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium"
+            className="px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer disabled:cursor-not-allowed"
             style={{
               background:
                 TOKENS.green,
@@ -1271,7 +1527,7 @@ function AnalysisPage() {
                     d.query
                   )
                 }
-                className="text-xs px-2.5 py-1 rounded-full"
+                className="text-xs px-2.5 py-1 rounded-full cursor-pointer"
                 style={{
                   background:
                     TOKENS.mist,
@@ -1596,6 +1852,17 @@ function ComparisonPage() {
     run(customQuery);
   };
 
+  const rankCutoff = active?.rankCutoff ?? 100;
+  const baseRankForBar =
+    active?.baseRank ?? rankCutoff + 1;
+  const finetunedRankForBar =
+    active?.finetunedRank ?? rankCutoff + 1;
+
+  const baseWins =
+    baseRankForBar < finetunedRankForBar;
+  const v3Wins =
+    finetunedRankForBar < baseRankForBar;
+
   return (
     <div className="max-w-5xl mx-auto px-5 py-10">
       <div className="mb-8">
@@ -1645,7 +1912,7 @@ function ComparisonPage() {
                 e.target.value
               )
             }
-            placeholder="गेहूं की पहली सिंचाई कब करनी चाहिए?"
+            placeholder="हल्दी की फसल में थ्रिप्स कीट से बचाव के लिए किस दवा का छिड़काव करें?"
             className="flex-1 rounded-xl px-4 py-2.5 text-[15px] outline-none"
             style={{
               border:
@@ -1662,7 +1929,7 @@ function ComparisonPage() {
               loading ||
               !customQuery.trim()
             }
-            className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50"
             style={{
               background:
                 TOKENS.green,
@@ -1695,7 +1962,7 @@ function ComparisonPage() {
                 onClick={() =>
                   run(d.query)
                 }
-                className="text-xs px-2.5 py-1 rounded-full disabled:opacity-50"
+                className="text-xs px-2.5 py-1 rounded-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background:
                     TOKENS.mist,
@@ -1850,7 +2117,7 @@ function ComparisonPage() {
                           "'Noto Sans Devanagari','Inter',sans-serif",
                       }}
                     >
-                      {labeledAnswer}
+                      {formatAnswer(labeledAnswer)}
                     </p>
                   ) : (
                     <p
@@ -1925,54 +2192,19 @@ function ComparisonPage() {
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-5">
-                  <div>
-                    <div
-                      className="text-xs mb-1"
-                      style={{
-                        color: TOKENS.mute,
-                      }}
-                    >
-                      Base MuRIL
-                    </div>
+                  <RankBar
+                    label="Base MuRIL"
+                    rank={baseRankForBar}
+                    maxRank={rankCutoff}
+                    isWinner={baseWins}
+                  />
 
-                    <div
-                      className="text-xl font-semibold"
-                      style={{
-                        color: TOKENS.amber,
-                        fontFamily:
-                          "'JetBrains Mono', monospace",
-                      }}
-                    >
-                      {active.baseRank
-                        ? `#${active.baseRank}`
-                        : `Not in Top-${active.rankCutoff}`}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div
-                      className="text-xs mb-1"
-                      style={{
-                        color: TOKENS.mute,
-                      }}
-                    >
-                      Fine-Tuned MuRIL V3
-                    </div>
-
-                    <div
-                      className="text-xl font-semibold"
-                      style={{
-                        color:
-                          TOKENS.green,
-                        fontFamily:
-                          "'JetBrains Mono', monospace",
-                      }}
-                    >
-                      {active.finetunedRank
-                        ? `#${active.finetunedRank}`
-                        : `Not in Top-${active.rankCutoff}`}
-                    </div>
-                  </div>
+                  <RankBar
+                    label="Fine-Tuned MuRIL V3"
+                    rank={finetunedRankForBar}
+                    maxRank={rankCutoff}
+                    isWinner={v3Wins}
+                  />
                 </div>
               )}
             </div>
@@ -2438,7 +2670,6 @@ function ComparisonPage() {
         >
           Higher is better. All models are evaluated
           on the same held-out agriculture retrieval set.
-          evaluation.
         </p>
       </div>
     </div>
@@ -2470,7 +2701,7 @@ export default function App() {
       />
 
       {tab === "assistant" && (
-        <AssistantPage />
+        <AssistantPage setTab={setTab} />
       )}
 
       {tab === "analysis" && (
