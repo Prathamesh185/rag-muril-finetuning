@@ -67,6 +67,34 @@ const RETRIEVAL_STEPS = [
   "Top-K Passages",
 ];
 
+const ACCURACY_AT_1 = [
+  { label: "Base MuRIL", value: 21.46 },
+  { label: "MuRIL V2", value: 70.10 },
+  { label: "BGE-M3", value: 69.75 },
+  { label: "E5-base", value: 73.28 },
+  { label: "MuRIL V3 (ours)", value: 74.90, highlight: true },
+];
+
+function AccuracyChart() {
+  const max = 80;
+  return (
+    <div className="accuracy-chart" aria-label="Accuracy at 1 comparison">
+      {ACCURACY_AT_1.map((row) => (
+        <div key={row.label} className="accuracy-row">
+          <span className="accuracy-label">{row.label}</span>
+          <div className="accuracy-track">
+            <div
+              className={`accuracy-fill${row.highlight ? " highlight" : ""}`}
+              style={{ width: `${(row.value / max) * 100}%` }}
+            />
+          </div>
+          <span className="accuracy-value">{row.value.toFixed(2)}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const METRICS = [
   {
     metric: "Accuracy@1",
@@ -1374,7 +1402,7 @@ function AssistantPage({ setTab }) {
 
 /* ---------------- Page 2: Retrieval Analysis ---------------- */
 
-function AnalysisPage() {
+export function AnalysisPage() {
   const [query, setQuery] =
     useState(DEMO_QUERIES[0].query);
 
@@ -1724,7 +1752,7 @@ function AnalysisPage() {
 
 /* ---------------- Page 3: Model Comparison ---------------- */
 
-function ComparisonPage() {
+export function ComparisonPage() {
   const [customQuery, setCustomQuery] =
     useState("");
 
@@ -2526,6 +2554,9 @@ function ComparisonPage() {
             `1px solid ${TOKENS.line}`,
         }}
       >
+        <p className="accuracy-chart-title">Accuracy@1 across models</p>
+        <AccuracyChart />
+
         <h3
           className="text-base font-semibold mb-4"
           style={{
