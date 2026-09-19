@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+
 
 import {
   sendChat,
@@ -157,6 +158,14 @@ const DEMO_QUERIES = [
 ];
 
 /* ---------------- shared UI atoms ---------------- */
+
+const METRIC_INFO = {
+  "Accuracy@1": "Whether the correct passage is ranked first.",
+  "Recall@5": "Whether the correct passage appears somewhere in the top 5.",
+  "Recall@10": "Whether the correct passage appears somewhere in the top 10.",
+  "MRR@10": "Rewards placing the correct passage higher in the top 10, averaged across test questions.",
+  "NDCG@10": "Measures ranking quality, giving more credit to relevant passages near the top.",
+};
 
 function Badge({ children }) {
   return (
@@ -669,6 +678,9 @@ function RankBar({
 
   return (
     <div>
+      <div className="text-[10px] mb-1" style={{ color: TOKENS.mute }}>
+        Retrieval rank — lower is better
+      </div>
       <div className="flex items-baseline justify-between mb-1.5">
         <span
           className="text-sm font-medium"
@@ -1704,6 +1716,9 @@ export function AnalysisPage() {
               >
                 Query: {activeQuery}
               </p>
+              <p className="text-[10px] mt-1" style={{ color: TOKENS.mute }}>
+                Retrieval settings: Top-K 5 · Model: Fine-Tuned MuRIL V3 · Index: FAISS
+              </p>
             </div>
 
             <div className="space-y-3">
@@ -1720,6 +1735,29 @@ export function AnalysisPage() {
               )}
             </div>
           </>
+        )}
+
+      {!loading &&
+        !error &&
+        retrieved.length === 0 &&
+        activeQuery && (
+          <div
+            className="rounded-2xl p-8 text-center"
+            style={{
+              background: TOKENS.amberLt,
+              border: `1px solid ${TOKENS.amber}`,
+            }}
+          >
+            <div className="text-sm font-medium" style={{ color: TOKENS.ink }}>
+              No passages were retrieved
+            </div>
+            <p className="text-xs mt-1" style={{ color: TOKENS.mute }}>
+              The submitted query returned no passages from the current FAISS index.
+            </p>
+            <p className="text-[10px] mt-2" style={{ color: TOKENS.mute }}>
+              Top-K 5 · Fine-Tuned MuRIL V3 · FAISS
+            </p>
+          </div>
         )}
 
       {!loading &&
@@ -1778,6 +1816,8 @@ export function ComparisonPage() {
     setLabeledSupportingText,
   ] = useState("");
 
+  const requestRef = useRef(0);
+
   const run = async (question) => {
     const text = question?.trim();
 
@@ -1792,7 +1832,7 @@ export function ComparisonPage() {
     setLabeledAnswerLoading(false);
     setLabeledSupportingText("");
     setLoading(true);
-
+    const requestId = ++requestRef.current;
 
     try {
       const result =
@@ -1800,6 +1840,8 @@ export function ComparisonPage() {
           text,
           5
         );
+
+      if (requestId !== requestRef.current) return;
 
       setActive({
         query: text,
@@ -1842,6 +1884,7 @@ export function ComparisonPage() {
 
         getLabeledAnswer(text)
           .then((answerResult) => {
+            if (requestId !== requestRef.current) return;
             if (
               answerResult.available &&
               answerResult.answer
@@ -1856,23 +1899,29 @@ export function ComparisonPage() {
             }
           })
           .catch((answerError) => {
+            if (requestId !== requestRef.current) return;
             console.error(
               "Labeled answer generation failed:",
               answerError
             );
           })
           .finally(() => {
-            setLabeledAnswerLoading(false);
+            if (requestId === requestRef.current) {
+              setLabeledAnswerLoading(false);
+            }
           });
       }
     } catch (err) {
+      if (requestId !== requestRef.current) return;
       setError(
         err instanceof Error
           ? err.message
           : "Unable to compare the models."
       );
     } finally {
-      setLoading(false);
+      if (requestId === requestRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -2628,9 +2677,13 @@ export function ComparisonPage() {
                 >
                   <td
                     className="py-2.5"
-                    style={{ color: TOKENS.ink }}
+                    title={METRIC_INFO[m.metric]}
+                    style={{ color: TOKENS.ink, cursor: "help" }}
                   >
-                    {m.metric}
+                    <span className="inline-flex items-center gap-1">
+                      {m.metric}
+                      <span aria-hidden="true" style={{ color: TOKENS.mute }}>ⓘ</span>
+                    </span>
                   </td>
 
                   <td

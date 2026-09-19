@@ -53,7 +53,7 @@ SYSTEM_PROMPT = """
 def local_llm(prompt):
 
     response = ollama.chat(
-        model="qwen3.5:4b",
+        model="qwen2.5:1.5b",
         think=False,
         options={
             "num_predict": 300,
