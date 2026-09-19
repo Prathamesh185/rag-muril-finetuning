@@ -1,5 +1,4 @@
-import { useRef, useState } from "react";
-
+import { useState } from "react";
 
 import {
   sendChat,
@@ -44,6 +43,22 @@ const TOKENS = {
   amber: "#B8722B",
   amberLt: "#FBF0E4",
 };
+
+export function EmbeddingSpace({ dots, connectors = [], width = 260, height = 72 }) {
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="embedding-space" role="img" aria-label="Embedding space illustration">
+      {connectors.map((c, i) => (
+        <line key={`line-${i}`} x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} stroke={c.stroke || TOKENS.neutralLine} strokeWidth={c.strokeWidth || 2} strokeDasharray={c.dashed ? "3 4" : undefined} strokeLinecap="round" />
+      ))}
+      {dots.map((d, i) => (
+        <g key={`dot-${i}`}>
+          <circle cx={d.cx} cy={d.cy} r={d.r || 7} fill={d.fill || TOKENS.green} />
+          {d.label && <text x={d.labelX ?? d.cx} y={d.labelY ?? d.cy + 22} fontSize="9" textAnchor="middle" fill={TOKENS.mute}>{d.label}</text>}
+        </g>
+      ))}
+    </svg>
+  );
+}
 
 const EXAMPLES = [
   "हल्दी की फसल में थ्रिप्स कीट से बचाव के लिए किस दवा का छिड़काव करें?",
@@ -158,14 +173,6 @@ const DEMO_QUERIES = [
 ];
 
 /* ---------------- shared UI atoms ---------------- */
-
-const METRIC_INFO = {
-  "Accuracy@1": "Whether the correct passage is ranked first.",
-  "Recall@5": "Whether the correct passage appears somewhere in the top 5.",
-  "Recall@10": "Whether the correct passage appears somewhere in the top 10.",
-  "MRR@10": "Rewards placing the correct passage higher in the top 10, averaged across test questions.",
-  "NDCG@10": "Measures ranking quality, giving more credit to relevant passages near the top.",
-};
 
 function Badge({ children }) {
   return (
@@ -678,9 +685,6 @@ function RankBar({
 
   return (
     <div>
-      <div className="text-[10px] mb-1" style={{ color: TOKENS.mute }}>
-        Retrieval rank — lower is better
-      </div>
       <div className="flex items-baseline justify-between mb-1.5">
         <span
           className="text-sm font-medium"
@@ -1561,7 +1565,9 @@ export function AnalysisPage() {
             (d) => (
               <button
                 key={d.id}
+                type="button"
                 dir="auto"
+                disabled={loading}
                 onClick={() =>
                   runRetrieval(
                     d.query
@@ -1716,9 +1722,6 @@ export function AnalysisPage() {
               >
                 Query: {activeQuery}
               </p>
-              <p className="text-[10px] mt-1" style={{ color: TOKENS.mute }}>
-                Retrieval settings: Top-K 5 · Model: Fine-Tuned MuRIL V3 · Index: FAISS
-              </p>
             </div>
 
             <div className="space-y-3">
@@ -1735,29 +1738,6 @@ export function AnalysisPage() {
               )}
             </div>
           </>
-        )}
-
-      {!loading &&
-        !error &&
-        retrieved.length === 0 &&
-        activeQuery && (
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{
-              background: TOKENS.amberLt,
-              border: `1px solid ${TOKENS.amber}`,
-            }}
-          >
-            <div className="text-sm font-medium" style={{ color: TOKENS.ink }}>
-              No passages were retrieved
-            </div>
-            <p className="text-xs mt-1" style={{ color: TOKENS.mute }}>
-              The submitted query returned no passages from the current FAISS index.
-            </p>
-            <p className="text-[10px] mt-2" style={{ color: TOKENS.mute }}>
-              Top-K 5 · Fine-Tuned MuRIL V3 · FAISS
-            </p>
-          </div>
         )}
 
       {!loading &&
@@ -1816,8 +1796,6 @@ export function ComparisonPage() {
     setLabeledSupportingText,
   ] = useState("");
 
-  const requestRef = useRef(0);
-
   const run = async (question) => {
     const text = question?.trim();
 
@@ -1832,7 +1810,7 @@ export function ComparisonPage() {
     setLabeledAnswerLoading(false);
     setLabeledSupportingText("");
     setLoading(true);
-    const requestId = ++requestRef.current;
+
 
     try {
       const result =
@@ -1840,8 +1818,6 @@ export function ComparisonPage() {
           text,
           5
         );
-
-      if (requestId !== requestRef.current) return;
 
       setActive({
         query: text,
@@ -1884,7 +1860,6 @@ export function ComparisonPage() {
 
         getLabeledAnswer(text)
           .then((answerResult) => {
-            if (requestId !== requestRef.current) return;
             if (
               answerResult.available &&
               answerResult.answer
@@ -1899,29 +1874,23 @@ export function ComparisonPage() {
             }
           })
           .catch((answerError) => {
-            if (requestId !== requestRef.current) return;
             console.error(
               "Labeled answer generation failed:",
               answerError
             );
           })
           .finally(() => {
-            if (requestId === requestRef.current) {
-              setLabeledAnswerLoading(false);
-            }
+            setLabeledAnswerLoading(false);
           });
       }
     } catch (err) {
-      if (requestId !== requestRef.current) return;
       setError(
         err instanceof Error
           ? err.message
           : "Unable to compare the models."
       );
     } finally {
-      if (requestId === requestRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
@@ -2677,13 +2646,9 @@ export function ComparisonPage() {
                 >
                   <td
                     className="py-2.5"
-                    title={METRIC_INFO[m.metric]}
-                    style={{ color: TOKENS.ink, cursor: "help" }}
+                    style={{ color: TOKENS.ink }}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      {m.metric}
-                      <span aria-hidden="true" style={{ color: TOKENS.mute }}>ⓘ</span>
-                    </span>
+                    {m.metric}
                   </td>
 
                   <td
