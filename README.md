@@ -6,8 +6,8 @@ The current implementation focuses primarily on Hindi agriculture data. The rese
 
 **Core Focus:** Fine-tuning MuRIL for agriculture-specific semantic retrieval and evaluating its improvement over Base MuRIL and strong multilingual embedding baselines.
 
-**Model on Hugging Face:** [prathameshkoph/agrisahayak-muril-v3](https://huggingface.co/prathameshkoph/agrisahayak-muril-v3)
-**Model on Kaggle:** [prathamesh185/agriculture-aware-muril-v3](https://www.kaggle.com/models/prathamesh185/agriculture-aware-muril-v3)
+**Model on Hugging Face:** [prathameshkoph/agrisahayak-muril-v3](https://huggingface.co/prathameshkoph/agrisahayak-muril-v3) <br>
+**Model on Kaggle:** [prathamesh185/agriculture-aware-muril-v3](https://www.kaggle.com/models/prathamesh185/agriculture-aware-muril-v3)<br>
 
 ![AgriSahayak AI answering a Hindi agriculture question with retrieved evidence and source passages](assets/screenshots/ai-assistant.png)
 
