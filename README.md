@@ -1,13 +1,15 @@
-# 🌾 Agriculture-Aware RAG using Fine-Tuned MuRIL
+# 🌾 AgriSahayak AI — Agriculture-Aware RAG using Fine-Tuned MuRIL
 
-This project fine-tunes Google's MuRIL model as an agriculture-aware sentence encoder to improve domain-specific semantic retrieval for Indian-language Retrieval-Augmented Generation (RAG).
+This project fine-tunes Google's MuRIL model as an agriculture-aware sentence encoder to improve domain-specific semantic retrieval for Indian-language Retrieval-Augmented Generation (RAG). The deployed application is **AgriSahayak AI**.
 
 The current implementation focuses primarily on Hindi agriculture data. The research pipeline uses Fine-Tuned MuRIL V3, FAISS, Gemini API / Local Qwen, FastAPI, and React to retrieve relevant agriculture passages and generate grounded answers.
 
 **Core Focus:** Fine-tuning MuRIL for agriculture-specific semantic retrieval and evaluating its improvement over Base MuRIL and strong multilingual embedding baselines.
 
-**Model on Hugging Face:** [prathameshkoph/agrisahayak-muril-v3](https://huggingface.co/prathameshkoph/agrisahayak-muril-v3) <br>
+**Model on Hugging Face:** [prathameshkoph/agrisahayak-muril-v3](https://huggingface.co/prathameshkoph/agrisahayak-muril-v3)
 **Model on Kaggle:** [prathamesh185/agriculture-aware-muril-v3](https://www.kaggle.com/models/prathamesh185/agriculture-aware-muril-v3)
+
+![AgriSahayak AI answering a Hindi agriculture question with retrieved evidence and source passages](assets/screenshots/ai-assistant.png)
 
 ---
 
@@ -174,6 +176,8 @@ All models are evaluated on the same held-out Hindi agriculture retrieval **test
 
 **Fine-Tuned MuRIL V3 achieved the strongest result across all reported metrics on this held-out test set.**
 
+![Accuracy@1 comparison across Base MuRIL, MuRIL V2, MuRIL V3, E5-base, and BGE-M3, with MuRIL V3 highest at 74.90%](assets/screenshots/benchmark-chart.png)
+
 <details>
 <summary><strong>Full metrics breakdown (Accuracy@3/@5, Precision@K, Recall@K)</strong></summary>
 
@@ -276,11 +280,21 @@ MuRIL was selected because it was specifically developed for Indian languages an
 
 ## 🌐 Web Application
 
-Three main interfaces:
+**AgriSahayak AI** has four main interfaces:
 
-1. **AI Assistant** — ask agriculture questions in Hindi, get grounded answers with retrieved evidence passages, cosine similarity scores, and sources. Choose between Gemini API or Local Qwen (via Ollama).
-2. **Retrieval Analysis** — shows the retrieval pipeline (Query → MuRIL → Embedding → FAISS → Top-K Passages) before LLM generation.
-3. **Model Comparison** — runs the same question through Base MuRIL and Fine-Tuned MuRIL side by side, making the fine-tuning effect directly visible.
+1. **Ask AgriSahayak** — ask agriculture questions in Hindi, get grounded answers with retrieved evidence passages, cosine similarity scores, and sources. Choose between Gemini API or Local Qwen (via Ollama).
+
+2. **Retrieval Explorer** — shows the retrieval pipeline (Query → Fine-Tuned MuRIL V3 → Query Embedding → FAISS → Top-K Passages) before LLM generation, with each retrieved passage's cosine score and source.
+
+   ![Retrieval Explorer showing the query-to-passage pipeline and top retrieved passages with cosine scores](assets/screenshots/retrieval-explorer.png)
+
+3. **Model Comparison** — runs the same question through Base MuRIL and Fine-Tuned MuRIL V3 side by side, making the fine-tuning effect directly visible: the labeled ground-truth passage often doesn't even appear in Base MuRIL's top-20, while Fine-Tuned V3 ranks it #1.
+
+   ![Base MuRIL vs Fine-Tuned MuRIL V3 side-by-side retrieval comparison for the same query](assets/screenshots/model-comparison.png)
+
+4. **How It Works** — an explainer view walking through why fine-tuning helps (how hard-negative training reshapes the embedding space) and the full offline build / online query pipeline, for readers who want the system explained rather than demonstrated live.
+
+> **Note on corpus size:** the live application indexes a **17,391-passage FAISS corpus**, larger than the 744-passage held-out evaluation set used for the benchmark numbers above. The two are separate by design — evaluation uses a fixed, leakage-checked subset, while the live app searches the full indexed corpus.
 
 ## 🔌 API
 
