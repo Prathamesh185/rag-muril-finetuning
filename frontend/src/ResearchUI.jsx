@@ -52,15 +52,21 @@ function Answer({ text }) {
       ),
     );
 }
-function Evidence({ items, done }) {
+function Evidence({ items, done, loading }) {
   return (
-    <aside className="evidence-panel" aria-label="Retrieved evidence">
+    <aside
+      className="evidence-panel"
+      aria-label="Retrieved evidence"
+      data-loading={loading ? "true" : undefined}
+    >
       <div className="panel-heading">
         <div>
           <span className="eyebrow">THE KNOWLEDGE BEHIND THE ANSWER</span>
           <h2>Retrieved evidence</h2>
         </div>
-        <span className="count">{items.length}</span>
+        <span className={items.length ? "count has-items" : "count"}>
+          {items.length}
+        </span>
       </div>
       {!items.length ? (
         <div className="evidence-empty">
@@ -195,7 +201,7 @@ function Assistant() {
   return (
     <>
       <section className="intro">
-        <div>
+        <div className="intro-copy">
           <span className="eyebrow">
             AGRICULTURE KNOWLEDGE, IN YOUR LANGUAGE
           </span>
@@ -284,10 +290,17 @@ function Assistant() {
                 <p dir="auto">{submitted}</p>
               </div>
               {status === "loading" && (
-                <div className="loading" role="status">
-                  <span className="spinner" />
-                  Preparing your answer and retrieved evidence…
-                </div>
+                <>
+                  <div className="loading" role="status">
+                    <span className="spinner" />
+                    Preparing your answer and retrieved evidence…
+                  </div>
+                  <div className="skeleton" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                </>
               )}
               {status === "error" && (
                 <div className="error" role="alert">
@@ -344,9 +357,13 @@ function Assistant() {
             applying advice.
           </p>
         </section>
-        <Evidence items={items} done={status === "success"} />
+        <Evidence
+          items={items}
+          done={status === "success"}
+          loading={status === "loading"}
+        />
       </div>
-      <section className="contribution">
+      <section className="contribution result">
         <span className="eyebrow">THE RESEARCH CONTRIBUTION</span>
         <h2>Better representations start with domain knowledge.</h2>
         <p>
@@ -355,8 +372,11 @@ function Assistant() {
           retrieval-augmented generation pipeline.
         </p>
         <p className="contribution-stat">
-          On the held-out retrieval benchmark, Accuracy@1 increased from
-          21.46% with base MuRIL to 74.90% with MuRIL V3.
+          On the held-out retrieval benchmark, Accuracy@1 increased from{" "}
+          <b className="num">21.46%</b>{" "}
+          with base MuRIL to{" "}
+          <b className="num hi">74.90%</b>{" "}
+          with MuRIL V3.
         </p>
         <div className="tech-row">
           <span>Fine-Tuned MuRIL</span>
@@ -368,14 +388,17 @@ function Assistant() {
     </>
   );
 }
-function Flow({ title, description, steps }) {
+function Flow({ title, description, steps, tone }) {
   return (
-    <section className="flow-card">
+    <section className={`flow-card flow-card--${tone}`}>
       <span className="eyebrow">{title}</span>
       <p>{description}</p>
       <ol>
         {steps.map(([name, note]) => (
-          <li key={name}>
+          <li
+            key={name}
+            className={name.startsWith("Fine-Tuned MuRIL") ? "is-key" : undefined}
+          >
             <strong>{name}</strong>
             <span>{note}</span>
           </li>
@@ -490,7 +513,7 @@ function Architecture() {
 
       <section className="page-title architecture-title">
         <span className="eyebrow">SYSTEM ARCHITECTURE</span>
-        <h1>How the pipeline works.</h1>
+        <h2>How the pipeline works.</h2>
         <p>
           The system separates knowledge-base preparation from the live
           retrieval-and-generation pipeline.
@@ -499,6 +522,7 @@ function Architecture() {
 
       <div className="architecture-grid">
         <Flow
+          tone="offline"
           title="01 / OFFLINE — BUILD"
           description="Prepare the agriculture knowledge base once, before live questions arrive."
           steps={[
@@ -512,6 +536,7 @@ function Architecture() {
           ]}
         />
         <Flow
+          tone="online"
           title="02 / ONLINE — LIVE QUERY"
           description="For every question, retrieve evidence first and then generate the response."
           steps={[
@@ -543,12 +568,12 @@ function Architecture() {
           <div className="embedding-comparison research-embedding-comparison">
             <div className="embedding-panel">
               <div className="embedding-label">Before fine-tuning</div>
-              <EmbeddingSpace dots={[{cx:34,cy:30,fill:"#57605A",label:"Question"},{cx:212,cy:18,fill:"#2F6D4F",label:"Correct"},{cx:215,cy:48,fill:"#B8722B",label:"Hard negative",labelX:215}]} connectors={[{x1:46,y1:28,x2:200,y2:19,dashed:true},{x1:46,y1:33,x2:200,y2:47,dashed:true}]} />
+              <EmbeddingSpace height={92} dots={[{cx:34,cy:44,fill:"#57605A",label:"Question"},{cx:212,cy:26,fill:"#2F6D4F",label:"Correct",labelY:13},{cx:215,cy:60,fill:"#B8722B",label:"Hard negative",labelX:215}]} connectors={[{x1:46,y1:43,x2:200,y2:27,dashed:true},{x1:46,y1:46,x2:200,y2:59,dashed:true}]} />
               <span>Relevant and misleading passages can remain similarly placed.</span>
             </div>
             <div className="embedding-panel after">
               <div className="embedding-label">After hard-negative fine-tuning</div>
-              <EmbeddingSpace dots={[{cx:56,cy:30,fill:"#57605A",label:"Question"},{cx:94,cy:30,fill:"#234D33",label:"Correct"},{cx:224,cy:30,fill:"#B8722B",label:"Hard negative",labelX:224}]} connectors={[{x1:68,y1:30,x2:82,y2:30,stroke:"#2F6D4F"}]} />
+              <EmbeddingSpace height={92} dots={[{cx:56,cy:40,fill:"#57605A",label:"Question"},{cx:94,cy:40,fill:"#234D33",label:"Correct",labelY:27},{cx:224,cy:40,fill:"#B8722B",label:"Hard negative",labelX:224}]} connectors={[{x1:68,y1:40,x2:82,y2:40,stroke:"#2F6D4F"}]} />
               <span>The relevant passage is pulled closer; the hard negative is separated.</span>
             </div>
           </div>
@@ -666,24 +691,26 @@ export default function ResearchUI() {
           </div>
         </aside>
         <main id="workspace" className="workspace" tabIndex="-1">
-          {tab === "assistant" && <Assistant />}
-          {tab === "architecture" && <Architecture />}
-          {["analysis", "compare"].includes(tab) && (
-            <>
-              <section className="research-notice">
-                <strong>Research workspace</strong>
-                <p>
-                  Live searches use your existing backend. Benchmark figures
-                  below are reported from the held-out retrieval evaluation
-                  used in this project. Similarity scores are not answer
-                  confidence.
-                </p>
-              </section>
-              <div className="legacy-research">
-                {tab === "analysis" ? <AnalysisPage /> : <ComparisonPage />}
-              </div>
-            </>
-          )}
+          <div className="page" key={tab}>
+            {tab === "assistant" && <Assistant />}
+            {tab === "architecture" && <Architecture />}
+            {["analysis", "compare"].includes(tab) && (
+              <>
+                <section className="research-notice">
+                  <strong>Research workspace</strong>
+                  <p>
+                    Live searches use your existing backend. Benchmark figures
+                    below are reported from the held-out retrieval evaluation
+                    used in this project. Similarity scores are not answer
+                    confidence.
+                  </p>
+                </section>
+                <div className="legacy-research">
+                  {tab === "analysis" ? <AnalysisPage /> : <ComparisonPage />}
+                </div>
+              </>
+            )}
+          </div>
           <footer>
             <div>
               AgriSahayak AI <span>Hindi-first. Domain-aware. Evidence-led.</span>

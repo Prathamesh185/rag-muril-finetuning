@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import {
   sendChat,
@@ -45,15 +45,25 @@ const TOKENS = {
 };
 
 export function EmbeddingSpace({ dots, connectors = [], width = 260, height = 72 }) {
+  const gridId = `embed-grid-${useId().replace(/:/g, "")}`;
+  // Grow the canvas when a label would otherwise sit on (or below) the edge.
+  const bottom = Math.max(0, ...dots.map((d) => (d.labelY ?? d.cy + 22) + 8));
+  const h = Math.max(height, bottom);
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="embedding-space" role="img" aria-label="Embedding space illustration">
+    <svg viewBox={`0 0 ${width} ${h}`} className="embedding-space" role="img" aria-label="Embedding space illustration">
+      <defs>
+        <pattern id={gridId} width="12" height="12" patternUnits="userSpaceOnUse">
+          <circle cx="1.5" cy="1.5" r="0.9" fill="#D3DCD5" />
+        </pattern>
+      </defs>
+      <rect x="0.5" y="0.5" width={width - 1} height={h - 1} rx="8" fill={`url(#${gridId})`} stroke="#E1E7E0" />
       {connectors.map((c, i) => (
-        <line key={`line-${i}`} x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} stroke={c.stroke || TOKENS.neutralLine} strokeWidth={c.strokeWidth || 2} strokeDasharray={c.dashed ? "3 4" : undefined} strokeLinecap="round" />
+        <line key={`line-${i}`} x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} stroke={c.stroke || "#AEBAB2"} strokeWidth={c.strokeWidth || 2} strokeDasharray={c.dashed ? "3 4" : undefined} strokeLinecap="round" />
       ))}
       {dots.map((d, i) => (
         <g key={`dot-${i}`}>
-          <circle cx={d.cx} cy={d.cy} r={d.r || 7} fill={d.fill || TOKENS.green} />
-          {d.label && <text x={d.labelX ?? d.cx} y={d.labelY ?? d.cy + 22} fontSize="9" textAnchor="middle" fill={TOKENS.mute}>{d.label}</text>}
+          <circle cx={d.cx} cy={d.cy} r={d.r || 7} fill={d.fill || TOKENS.green} stroke="#fff" strokeWidth="1.5" />
+          {d.label && <text x={d.labelX ?? d.cx} y={d.labelY ?? d.cy + 22} fontSize="9" textAnchor="middle">{d.label}</text>}
         </g>
       ))}
     </svg>
@@ -212,16 +222,7 @@ function formatAnswer(text) {
 
   return parts.map((part, i) =>
     i % 2 === 1 ? (
-      <mark
-        key={i}
-        style={{
-          background: TOKENS.greenLt,
-          color: TOKENS.forest,
-          padding: "1px 4px",
-          borderRadius: "4px",
-          fontWeight: 600,
-        }}
-      >
+      <mark key={i} className="mark-answer">
         {part}
       </mark>
     ) : (
@@ -344,16 +345,7 @@ function highlightEvidenceText(text, phrases) {
   return text.split(regex).map((part, index) => {
     if (matchSet.has(part.toLowerCase())) {
       return (
-        <mark
-          key={`${index}-${part}`}
-          style={{
-            background: "#BFE8C9",
-            color: TOKENS.forest,
-            padding: "1px 3px",
-            borderRadius: 3,
-            fontWeight: 600,
-          }}
-        >
+        <mark key={`${index}-${part}`} className="mark-evidence">
           {part}
         </mark>
       );
@@ -507,81 +499,37 @@ function LiveEvidenceCard({
   ];
 
   return (
-    <div
-      className="rounded-xl p-4 sm:p-5"
-      style={{
-        background: isGroundTruth
-          ? TOKENS.greenLt
-          : TOKENS.paper,
-        border: `1px solid ${isGroundTruth
-          ? TOKENS.greenLine
-          : TOKENS.line
-          }`,
-      }}
-    >
-      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span
-            className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold"
-            style={{
-              background: TOKENS.green,
-              color: "#fff",
-            }}
-          >
-            {item.rank}
-          </span>
+    <div className={`ev-card${isGroundTruth ? " is-truth" : ""}`}>
+      <div className="ev-head">
+        <div className="ev-head-main">
+          <span className="ev-rank">{item.rank}</span>
 
-          <span
-            className="text-sm font-medium"
-            style={{ color: TOKENS.ink }}
-          >
+          <span className="ev-title">
             {item.title || "Retrieved passage"}
           </span>
 
           {isGroundTruth && (
-            <span
-              className="text-xs font-semibold"
-              style={{ color: TOKENS.green }}
-            >
-              ✓ Labeled ground truth
-            </span>
+            <span className="ev-truth">✓ Labeled ground truth</span>
           )}
         </div>
 
         <span
-          className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium"
+          className="ev-score"
           title="Model-specific cosine similarity. Compare ranks, not scores across models."
-          style={{
-            background: TOKENS.mist,
-            color: TOKENS.mute,
-            border: `1px solid ${TOKENS.line}`,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
         >
           cosine&nbsp;{Number(item.score).toFixed(3)}
         </span>
       </div>
 
-      <p
-        dir="auto"
-        className="text-[15px] leading-relaxed"
-        style={{
-          color: TOKENS.mute,
-          fontFamily:
-            "'Noto Sans Devanagari','Inter',sans-serif",
-        }}
-      >
+      <p dir="auto" className="ev-text">
         {highlightEvidenceText(
           item.text,
           phrasesToHighlight
         )}
       </p>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <span
-          className="text-xs"
-          style={{ color: TOKENS.mute }}
-        >
+      <div className="ev-foot">
+        <span>
           Source: {SOURCE_LABELS[item.source] || item.source || "Unknown"}
         </span>
 
@@ -590,8 +538,7 @@ function LiveEvidenceCard({
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-medium hover:underline cursor-pointer"
-            style={{ color: TOKENS.green }}
+            className="ev-link"
           >
             View source →
           </a>
@@ -609,53 +556,21 @@ function PipelineDiagram({
 }) {
   return (
     <div
-      className={
-        wrap
-          ? "flex flex-wrap items-center justify-center gap-1.5"
-          : noScroll
-            ? "flex items-center justify-center gap-1.5"
-            : "flex items-center overflow-x-auto gap-1.5 pb-1"
-      }
+      className={`pipeline${compact ? " pipeline--compact" : ""}${
+        wrap ? " pipeline--wrap" : ""
+      }${noScroll ? " pipeline--static" : ""}`}
     >
       {steps.map((step, i) => {
         const isHero = step.startsWith("Fine-Tuned MuRIL");
 
         return (
-          <div
-            key={step}
-            className="flex items-center flex-shrink-0"
-          >
-            <div
-              className={`rounded-lg text-center whitespace-nowrap ${compact
-                ? "px-3 py-2 text-xs"
-                : "px-4 py-3 text-sm"
-                }`}
-              style={{
-                background: isHero
-                  ? TOKENS.green
-                  : TOKENS.mist,
-                color: isHero
-                  ? "#fff"
-                  : TOKENS.ink,
-                border: `1px solid ${isHero
-                  ? TOKENS.green
-                  : TOKENS.line
-                  }`,
-                fontWeight: isHero
-                  ? 600
-                  : 500,
-              }}
-            >
+          <div key={step} className="pipeline-item">
+            <div className={`pipeline-step${isHero ? " is-hero" : ""}`}>
               {step}
             </div>
 
             {i < steps.length - 1 && (
-              <span
-                className="mx-1.5 flex-shrink-0"
-                style={{
-                  color: TOKENS.mute,
-                }}
-              >
+              <span className="pipeline-arrow" aria-hidden="true">
                 →
               </span>
             )}
@@ -684,43 +599,19 @@ function RankBar({
       : `#${rank}`;
 
   return (
-    <div>
-      <div className="flex items-baseline justify-between mb-1.5">
-        <span
-          className="text-sm font-medium"
-          style={{ color: TOKENS.ink }}
-        >
-          {label}
-        </span>
+    <div className={`rankbar${isWinner ? " is-winner" : ""}`}>
+      <div className="rankbar-head">
+        <span className="rankbar-label">{label}</span>
 
-        <span
-          className="text-sm font-semibold"
-          style={{
-            color: isWinner
-              ? TOKENS.green
-              : TOKENS.amber,
-            fontFamily:
-              "'JetBrains Mono', monospace",
-          }}
-        >
+        <span className="rankbar-value">
           {rankLabel} {isWinner && "✓"}
         </span>
       </div>
 
-      <div
-        className="h-2.5 rounded-full overflow-hidden"
-        style={{
-          background: TOKENS.mist,
-        }}
-      >
+      <div className="rankbar-track">
         <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{
-            width: `${pct}%`,
-            background: isWinner
-              ? TOKENS.green
-              : "#D7BB98",
-          }}
+          className="rankbar-fill"
+          style={{ width: `${pct}%` }}
         />
       </div>
     </div>
@@ -1475,45 +1366,22 @@ export function AnalysisPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-5 py-10">
-      <div className="mb-8">
-        <h2
-          className="text-2xl font-medium mb-1.5"
-          style={{
-            color: TOKENS.forest,
-            fontFamily:
-              "'Newsreader', serif",
-          }}
-        >
-          Retrieval Analysis
-        </h2>
+    <div className="lp">
+      <header className="lp-head">
+        <h1>Retrieval Analysis</h1>
 
-        <p
-          className="text-sm"
-          style={{
-            color: TOKENS.mute,
-          }}
-        >
-          Inspect the real passages retrieved by
-          Fine-Tuned MuRIL and FAISS.
+        <p>
+          Inspect the real passages retrieved by Fine-Tuned MuRIL and FAISS.
         </p>
-      </div>
+      </header>
 
-      <div
-        className="rounded-2xl p-5 mb-5"
-        style={{
-          background:
-            TOKENS.paper,
-          border:
-            `1px solid ${TOKENS.line}`,
-        }}
-      >
+      <section className="qcard">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             runRetrieval();
           }}
-          className="flex flex-col sm:flex-row gap-2"
+          className="qform"
         >
           <input
             dir="auto"
@@ -1524,42 +1392,20 @@ export function AnalysisPage() {
               )
             }
             placeholder="Enter an agriculture question"
-            className="flex-1 rounded-xl px-4 py-2.5 text-[15px] outline-none"
-            style={{
-              border:
-                `1px solid ${TOKENS.line}`,
-              color: TOKENS.ink,
-              fontFamily:
-                "'Noto Sans Devanagari','Inter',sans-serif",
-            }}
+            className="field"
           />
 
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer disabled:cursor-not-allowed"
-            style={{
-              background:
-                TOKENS.green,
-              color: "#fff",
-              opacity: loading
-                ? 0.7
-                : 1,
-            }}
+            className="btn-primary btn-lg"
           >
             Retrieve
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          <span
-            className="text-xs"
-            style={{
-              color: TOKENS.mute,
-            }}
-          >
-            Try an example:
-          </span>
+        <div className="examples-row">
+          <span className="examples-label">Try an example:</span>
 
           {DEMO_QUERIES.map(
             (d) => (
@@ -1573,127 +1419,62 @@ export function AnalysisPage() {
                     d.query
                   )
                 }
-                className="text-xs px-2.5 py-1 rounded-full cursor-pointer"
-                style={{
-                  background:
-                    TOKENS.mist,
-                  color:
-                    TOKENS.forest,
-                  border:
-                    `1px solid ${TOKENS.line}`,
-                  fontFamily:
-                    "'Noto Sans Devanagari','Inter',sans-serif",
-                }}
+                className="chip-btn"
               >
                 {d.query}
               </button>
             )
           )}
         </div>
-      </div>
+      </section>
 
-      <div
-        className="rounded-2xl p-5 sm:p-6 mb-8"
-        style={{
-          background:
-            TOKENS.mist,
-          border:
-            `1px solid ${TOKENS.line}`,
-        }}
-      >
-        <div
-          className="text-xs font-medium mb-4"
-          style={{
-            color: TOKENS.mute,
-          }}
-        >
-          Query → retrieval pipeline
-        </div>
+      <section className="pipeline-card">
+        <div className="pipeline-title">Query → retrieval pipeline</div>
 
         <PipelineDiagram
           steps={RETRIEVAL_STEPS}
         />
 
-        <p
-          className="text-xs mt-4"
-          style={{
-            color: TOKENS.mute,
-          }}
-        >
-          <span
-            style={{
-              color: TOKENS.green,
-              fontWeight: 600,
-            }}
-          >
-            Fine-Tuned MuRIL
-          </span>{" "}
+        <p className="pipeline-note">
+          <span className="hl">Fine-Tuned MuRIL</span>{" "}
           is this project's core research
           contribution — it produces the
           domain-aware query embedding used
           for FAISS retrieval.
         </p>
-      </div>
+      </section>
 
       {loading && (
-        <div
-          className="rounded-xl p-6 flex items-center gap-3"
-          style={{
-            background:
-              TOKENS.mist,
-            border:
-              `1px solid ${TOKENS.line}`,
-          }}
-        >
-          <span
-            className="w-4 h-4 rounded-full animate-spin flex-shrink-0"
-            style={{
-              border:
-                `2px solid ${TOKENS.greenLine}`,
-              borderTopColor:
-                TOKENS.green,
-            }}
-          />
+        <>
+          <div className="status-card" role="status">
+            <span className="spinner" />
 
-          <span
-            className="text-sm"
-            style={{
-              color: TOKENS.mute,
-            }}
-          >
-            Searching the Fine-Tuned MuRIL
-            FAISS index…
-          </span>
-        </div>
+            <span>
+              Searching the Fine-Tuned MuRIL
+              FAISS index…
+            </span>
+          </div>
+
+          <div className="skeleton-list" aria-hidden="true">
+            <div className="skeleton-card">
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="skeleton-card">
+              <i />
+              <i />
+              <i />
+            </div>
+          </div>
+        </>
       )}
 
       {!loading && error && (
-        <div
-          className="rounded-xl p-5"
-          style={{
-            background:
-              TOKENS.amberLt,
-            border:
-              `1px solid ${TOKENS.amber}`,
-          }}
-        >
-          <div
-            className="text-sm font-medium"
-            style={{
-              color: TOKENS.ink,
-            }}
-          >
-            Retrieval failed
-          </div>
+        <div className="alert alert--error" role="alert">
+          <div className="alert-title">Retrieval failed</div>
 
-          <div
-            className="text-sm mt-1"
-            style={{
-              color: TOKENS.mute,
-            }}
-          >
-            {error}
-          </div>
+          <div className="alert-body">{error}</div>
         </div>
       )}
 
@@ -1701,30 +1482,13 @@ export function AnalysisPage() {
         !error &&
         retrieved.length > 0 && (
           <>
-            <div className="mb-4">
-              <h3
-                className="text-sm font-semibold mb-1"
-                style={{
-                  color: TOKENS.ink,
-                }}
-              >
-                Top retrieved passages
-              </h3>
+            <div className="results-head">
+              <h3>Top retrieved passages</h3>
 
-              <p
-                dir="auto"
-                className="text-xs"
-                style={{
-                  color: TOKENS.mute,
-                  fontFamily:
-                    "'Noto Sans Devanagari','Inter',sans-serif",
-                }}
-              >
-                Query: {activeQuery}
-              </p>
+              <p dir="auto">Query: {activeQuery}</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="ev-list">
               {retrieved.map(
                 (item) => (
                   <LiveEvidenceCard
@@ -1744,21 +1508,8 @@ export function AnalysisPage() {
         !error &&
         retrieved.length === 0 &&
         !activeQuery && (
-          <div
-            className="rounded-2xl p-10 text-center"
-            style={{
-              background:
-                TOKENS.mist,
-              border:
-                `1px dashed ${TOKENS.line}`,
-            }}
-          >
-            <p
-              className="text-sm"
-              style={{
-                color: TOKENS.mute,
-              }}
-            >
+          <div className="empty-state">
+            <p>
               Enter a question to inspect the
               real FAISS retrieval results.
             </p>
@@ -1910,45 +1661,23 @@ export function ComparisonPage() {
     finetunedRankForBar < baseRankForBar;
 
   return (
-    <div className="max-w-5xl mx-auto px-5 py-10">
-      <div className="mb-8">
-        <h2
-          className="text-2xl font-medium mb-1.5"
-          style={{
-            color: TOKENS.forest,
-            fontFamily:
-              "'Newsreader', serif",
-          }}
-        >
-          Base MuRIL vs Fine-Tuned MuRIL V3
-        </h2>
+    <div className="lp">
+      <header className="lp-head">
+        <h1>Base MuRIL vs Fine-Tuned MuRIL V3</h1>
 
-        <p
-          className="text-sm"
-          style={{
-            color: TOKENS.mute,
-          }}
-        >
+        <p>
           Compare live retrieval results for
           the same agriculture query.
         </p>
-      </div>
+      </header>
 
-      <div
-        className="rounded-2xl p-5 mb-4"
-        style={{
-          background:
-            TOKENS.paper,
-          border:
-            `1px solid ${TOKENS.line}`,
-        }}
-      >
+      <section className="qcard">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             runCustom();
           }}
-          className="flex flex-col sm:flex-row gap-2"
+          className="qform"
         >
           <input
             dir="auto"
@@ -1959,14 +1688,7 @@ export function ComparisonPage() {
               )
             }
             placeholder="हल्दी की फसल में थ्रिप्स कीट से बचाव के लिए किस दवा का छिड़काव करें?"
-            className="flex-1 rounded-xl px-4 py-2.5 text-[15px] outline-none"
-            style={{
-              border:
-                `1px solid ${TOKENS.line}`,
-              color: TOKENS.ink,
-              fontFamily:
-                "'Noto Sans Devanagari','Inter',sans-serif",
-            }}
+            className="field"
           />
 
           <button
@@ -1975,12 +1697,7 @@ export function ComparisonPage() {
               loading ||
               !customQuery.trim()
             }
-            className="px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50"
-            style={{
-              background:
-                TOKENS.green,
-              color: "#fff",
-            }}
+            className="btn-primary btn-lg"
           >
             {loading
               ? "Comparing..."
@@ -1988,15 +1705,8 @@ export function ComparisonPage() {
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          <span
-            className="text-xs"
-            style={{
-              color: TOKENS.mute,
-            }}
-          >
-            Try an example:
-          </span>
+        <div className="examples-row">
+          <span className="examples-label">Try an example:</span>
 
           {DEMO_QUERIES.map(
             (d) => (
@@ -2008,215 +1718,98 @@ export function ComparisonPage() {
                 onClick={() =>
                   run(d.query)
                 }
-                className="text-xs px-2.5 py-1 rounded-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  background:
-                    TOKENS.mist,
-                  color:
-                    TOKENS.forest,
-                  border:
-                    `1px solid ${TOKENS.line}`,
-                  fontFamily:
-                    "'Noto Sans Devanagari','Inter',sans-serif",
-                }}
+                className="chip-btn"
               >
                 {d.query}
               </button>
             )
           )}
         </div>
-      </div>
+      </section>
 
       {loading && (
-        <div
-          className="rounded-xl p-6 flex items-center gap-3 mb-6"
-          style={{
-            background:
-              TOKENS.mist,
-            border:
-              `1px solid ${TOKENS.line}`,
-          }}
-        >
-          <span
-            className="w-4 h-4 rounded-full animate-spin flex-shrink-0"
-            style={{
-              border:
-                `2px solid ${TOKENS.greenLine}`,
-              borderTopColor:
-                TOKENS.green,
-            }}
-          />
+        <>
+          <div className="status-card" role="status">
+            <span className="spinner" />
 
-          <span
-            className="text-sm"
-            style={{
-              color: TOKENS.mute,
-            }}
-          >
-            Running the same query through
-            Base MuRIL and Fine-Tuned MuRIL…
-          </span>
-        </div>
+            <span>
+              Running the same query through
+              Base MuRIL and Fine-Tuned MuRIL…
+            </span>
+          </div>
+
+          <div className="skeleton-list" aria-hidden="true">
+            <div className="skeleton-card">
+              <i />
+              <i />
+              <i />
+            </div>
+          </div>
+        </>
       )}
 
       {error && !loading && (
-        <div
-          className="rounded-xl p-4 mb-6 text-sm"
-          style={{
-            background: "#FFF7ED",
-            border:
-              "1px solid #FED7AA",
-            color: "#9A3412",
-          }}
-        >
+        <div className="alert alert--error" role="alert">
           {error}
         </div>
       )}
 
       {active && !loading && (
         <>
-          <div
-            className="rounded-2xl overflow-hidden mb-5"
-            style={{
-              background: TOKENS.paper,
-              border: `1px solid ${TOKENS.line}`,
-            }}
-          >
+          <section className="cmp-summary">
             {/* Query */}
-            <div className="p-5 sm:p-6">
-              <div
-                className="text-xs font-medium mb-2"
-                style={{
-                  color: TOKENS.mute,
-                }}
-              >
-                Query
-              </div>
+            <div className="cmp-query">
+              <div className="cmp-label">Query</div>
 
-              <div
-                dir="auto"
-                className="text-[17px] sm:text-[18px] font-medium leading-relaxed"
-                style={{
-                  color: TOKENS.ink,
-                  fontFamily:
-                    "'Noto Sans Devanagari','Inter',sans-serif",
-                }}
-              >
+              <div dir="auto" className="cmp-query-text">
                 {active.query}
               </div>
             </div>
 
+            {/* Generated answer */}
             {active.groundTruthAvailable && (
-              <>
-                <div
-                  style={{
-                    borderTop:
-                      `1px solid ${TOKENS.line}`,
-                  }}
-                />
-
-                {/* Generated answer */}
-                <div
-                  className="p-5 sm:p-6"
-                  style={{
-                    background: TOKENS.greenLt,
-                  }}
-                >
-                  <div
-                    className="text-xs font-semibold mb-2"
-                    style={{
-                      color: TOKENS.green,
-                    }}
-                  >
-                    Generated answer from labeled passage
-                  </div>
-
-                  {labeledAnswerLoading ? (
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-3.5 h-3.5 rounded-full animate-spin flex-shrink-0"
-                        style={{
-                          border:
-                            `2px solid ${TOKENS.greenLine}`,
-                          borderTopColor:
-                            TOKENS.green,
-                        }}
-                      />
-
-                      <span
-                        className="text-sm"
-                        style={{
-                          color: TOKENS.mute,
-                        }}
-                      >
-                        Generating a short answer from the
-                        labeled dataset passage...
-                      </span>
-                    </div>
-                  ) : labeledAnswer ? (
-                    <p
-                      dir="auto"
-                      className="text-[16px] leading-relaxed font-medium"
-                      style={{
-                        color: TOKENS.ink,
-                        fontFamily:
-                          "'Noto Sans Devanagari','Inter',sans-serif",
-                      }}
-                    >
-                      {formatAnswer(labeledAnswer)}
-                    </p>
-                  ) : (
-                    <p
-                      className="text-sm"
-                      style={{
-                        color: TOKENS.mute,
-                      }}
-                    >
-                      A generated answer is not available
-                      for this labeled passage.
-                    </p>
-                  )}
-
-                  <div
-                    className="text-xs mt-3"
-                    style={{
-                      color: TOKENS.mute,
-                    }}
-                  >
-                    Gemini-generated using only the labeled
-                    positive passage for this dataset question.
-                  </div>
+              <div className="cmp-answer">
+                <div className="cmp-label">
+                  Generated answer from labeled passage
                 </div>
-              </>
+
+                {labeledAnswerLoading ? (
+                  <div className="inline-status">
+                    <span className="spinner spinner--sm" />
+
+                    <span>
+                      Generating a short answer from the
+                      labeled dataset passage...
+                    </span>
+                  </div>
+                ) : labeledAnswer ? (
+                  <p dir="auto" className="cmp-answer-text">
+                    {formatAnswer(labeledAnswer)}
+                  </p>
+                ) : (
+                  <p className="cmp-muted">
+                    A generated answer is not available
+                    for this labeled passage.
+                  </p>
+                )}
+
+                <div className="cmp-foot">
+                  Gemini-generated using only the labeled
+                  positive passage for this dataset question.
+                </div>
+              </div>
             )}
-          </div>
+          </section>
+
           {/* Known labeled passage — live full-corpus rank */}
           {active.groundTruthAvailable && (
-            <div
-              className="rounded-2xl p-5 mb-5"
-              style={{
-                background:
-                  TOKENS.paper,
-                border:
-                  `1px solid ${TOKENS.line}`,
-              }}
-            >
-              <div
-                className="text-xs font-medium mb-2"
-                style={{
-                  color: TOKENS.mute,
-                }}
-              >
+            <section className="rank-card">
+              <div className="cmp-label">
                 Known labeled passage — live
                 full-corpus rank
               </div>
 
-              <p
-                className="text-xs mb-4"
-                style={{
-                  color: TOKENS.mute,
-                }}
-              >
+              <p className="cmp-note">
                 Live ranks are computed against
                 the current 17,391-passage FAISS
                 corpus and may differ from the
@@ -2225,19 +1818,14 @@ export function ComparisonPage() {
               </p>
 
               {!active.groundTruthInLiveCorpus ? (
-                <div
-                  className="text-sm"
-                  style={{
-                    color: TOKENS.amber,
-                  }}
-                >
+                <div className="cmp-caution">
                   The labeled ground-truth passage
                   is not present in the current live
                   corpus, so a live rank cannot be
                   computed for this question.
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 gap-5">
+                <div className="rank-grid">
                   <RankBar
                     label="Base MuRIL"
                     rank={baseRankForBar}
@@ -2253,15 +1841,10 @@ export function ComparisonPage() {
                   />
                 </div>
               )}
-            </div>
+            </section>
           )}
 
-          <p
-            className="text-xs mb-6"
-            style={{
-              color: TOKENS.mute,
-            }}
-          >
+          <p className="cmp-note cmp-note--lanes">
             Similarity scores belong to each
             model's own embedding space. Compare
             passage relevance and ranking rather
@@ -2269,38 +1852,18 @@ export function ComparisonPage() {
             scores directly.
           </p>
 
-          <div className="grid md:grid-cols-2 gap-5">
+          <div className="lanes">
             {/* Base MuRIL */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{
-                    background:
-                      TOKENS.neutralInk,
-                  }}
-                />
+            <div className="lane lane--base">
+              <div className="lane-head">
+                <span className="lane-dot" />
 
-                <span
-                  className="text-sm font-semibold"
-                  style={{
-                    color: TOKENS.ink,
-                  }}
-                >
-                  Base MuRIL
-                </span>
+                <span className="lane-name">Base MuRIL</span>
 
-                <span
-                  className="text-xs"
-                  style={{
-                    color: TOKENS.mute,
-                  }}
-                >
-                  general encoder
-                </span>
+                <span className="lane-desc">general encoder</span>
               </div>
 
-              <div className="space-y-3">
+              <div className="ev-list">
                 {active.base.map(
                   (item) => (
                     <LiveEvidenceCard
@@ -2322,38 +1885,16 @@ export function ComparisonPage() {
             </div>
 
             {/* Fine-Tuned MuRIL */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{
-                    background:
-                      TOKENS.green,
-                  }}
-                />
+            <div className="lane lane--v3">
+              <div className="lane-head">
+                <span className="lane-dot" />
 
-                <span
-                  className="text-sm font-semibold"
-                  style={{
-                    color:
-                      TOKENS.forest,
-                  }}
-                >
-                  Fine-Tuned MuRIL V3
-                </span>
+                <span className="lane-name">Fine-Tuned MuRIL V3</span>
 
-                <span
-                  className="text-xs"
-                  style={{
-                    color:
-                      TOKENS.mute,
-                  }}
-                >
-                  MNRL + hard negatives
-                </span>
+                <span className="lane-desc">MNRL + hard negatives</span>
               </div>
 
-              <div className="space-y-3">
+              <div className="ev-list">
                 {active.finetuned.map(
                   (item) => (
                     <LiveEvidenceCard
@@ -2380,21 +1921,8 @@ export function ComparisonPage() {
       {!active &&
         !loading &&
         !error && (
-          <div
-            className="rounded-2xl p-10 text-center"
-            style={{
-              background:
-                TOKENS.mist,
-              border:
-                `1px dashed ${TOKENS.line}`,
-            }}
-          >
-            <p
-              className="text-sm"
-              style={{
-                color: TOKENS.mute,
-              }}
-            >
+          <div className="empty-state empty-state--compare">
+            <p>
               Enter a query or pick an example
               to retrieve passages from both
               models.
@@ -2403,31 +1931,10 @@ export function ComparisonPage() {
         )}
 
       {/* Why fine-tune */}
-      <div
-        className="mt-12 rounded-2xl p-6 sm:p-8"
-        style={{
-          background:
-            TOKENS.paper,
-          border:
-            `1px solid ${TOKENS.line}`,
-        }}
-      >
-        <h3
-          className="text-base font-semibold mb-2"
-          style={{
-            color: TOKENS.forest,
-          }}
-        >
-          Why fine-tune MuRIL?
-        </h3>
+      <section className="why-card">
+        <h3>Why fine-tune MuRIL?</h3>
 
-        <p
-          className="text-sm leading-relaxed mb-6"
-          style={{
-            color: TOKENS.mute,
-            maxWidth: 640,
-          }}
-        >
+        <p>
           Base MuRIL understands
           Indian-language text generally.
           Fine-tuning teaches the encoder to
@@ -2436,291 +1943,79 @@ export function ComparisonPage() {
           passages in the embedding space.
         </p>
 
-        <div className="grid sm:grid-cols-2 gap-6">
-          <div>
-            <div
-              className="text-xs font-medium mb-3"
-              style={{
-                color: TOKENS.mute,
-              }}
-            >
+        <div className="why-figs">
+          <figure className="embedding-panel">
+            <figcaption className="embedding-label">
               Before fine-tuning
-            </div>
+            </figcaption>
 
-            <svg
-              viewBox="0 0 260 60"
-              className="w-full max-w-[260px]"
-            >
-              <circle
-                cx="30"
-                cy="30"
-                r="7"
-                fill={
-                  TOKENS.neutralInk
-                }
-              />
+            <EmbeddingSpace
+              height={60}
+              dots={[
+                { cx: 30, cy: 30, fill: TOKENS.neutralInk, label: "Question" },
+                { cx: 212, cy: 30, fill: "#D7BB98", label: "Passage", labelX: 205 },
+              ]}
+              connectors={[{ x1: 42, y1: 30, x2: 200, y2: 30, dashed: true }]}
+            />
+          </figure>
 
-              <text
-                x="30"
-                y="52"
-                fontSize="9"
-                textAnchor="middle"
-                fill={TOKENS.mute}
-              >
-                Question
-              </text>
-
-              <line
-                x1="42"
-                y1="30"
-                x2="200"
-                y2="30"
-                stroke={
-                  TOKENS.neutralLine
-                }
-                strokeWidth="2"
-                strokeDasharray="3 4"
-              />
-
-              <circle
-                cx="212"
-                cy="30"
-                r="7"
-                fill="#D7BB98"
-              />
-
-              <text
-                x="205"
-                y="52"
-                fontSize="9"
-                textAnchor="middle"
-                fill={TOKENS.mute}
-              >
-                Passage
-              </text>
-            </svg>
-          </div>
-
-          <div>
-            <div
-              className="text-xs font-medium mb-3"
-              style={{
-                color: TOKENS.mute,
-              }}
-            >
+          <figure className="embedding-panel after">
+            <figcaption className="embedding-label">
               After fine-tuning
-            </div>
+            </figcaption>
 
-            <svg
-              viewBox="0 0 260 60"
-              className="w-full max-w-[260px]"
-            >
-              <circle
-                cx="90"
-                cy="30"
-                r="7"
-                fill={TOKENS.green}
-              />
-
-              <text
-                x="90"
-                y="52"
-                fontSize="9"
-                textAnchor="middle"
-                fill={TOKENS.mute}
-              >
-                Question
-              </text>
-
-              <line
-                x1="102"
-                y1="30"
-                x2="128"
-                y2="30"
-                stroke={TOKENS.green}
-                strokeWidth="2"
-              />
-
-              <circle
-                cx="140"
-                cy="30"
-                r="7"
-                fill={TOKENS.forest}
-              />
-
-              <text
-                x="140"
-                y="52"
-                fontSize="9"
-                textAnchor="middle"
-                fill={TOKENS.mute}
-              >
-                Passage
-              </text>
-            </svg>
-          </div>
+            <EmbeddingSpace
+              height={60}
+              dots={[
+                { cx: 90, cy: 30, fill: TOKENS.green, label: "Question" },
+                { cx: 140, cy: 30, fill: TOKENS.forest, label: "Passage" },
+              ]}
+              connectors={[{ x1: 102, y1: 30, x2: 128, y2: 30, stroke: TOKENS.green }]}
+            />
+          </figure>
         </div>
-      </div>
+      </section>
 
       {/* Existing metrics section */}
-      <div
-        className="mt-6 rounded-2xl p-6 sm:p-8"
-        style={{
-          background:
-            TOKENS.paper,
-          border:
-            `1px solid ${TOKENS.line}`,
-        }}
-      >
+      <section className="metrics-card">
         <p className="accuracy-chart-title">Accuracy@1 across models</p>
         <AccuracyChart />
 
-        <h3
-          className="text-base font-semibold mb-4"
-          style={{
-            color: TOKENS.forest,
-          }}
-        >
-          Held-out agriculture retrieval evaluation
-        </h3>
+        <h3>Held-out agriculture retrieval evaluation</h3>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+        <div className="table-scroll">
+          <table className="metrics-table">
             <thead>
-              <tr
-                style={{
-                  borderBottom: `1px solid ${TOKENS.line}`,
-                }}
-              >
-                <th
-                  className="text-left py-2 font-medium"
-                  style={{ color: TOKENS.mute }}
-                >
-                  Metric
-                </th>
-
-                <th
-                  className="text-right py-2 font-medium"
-                  style={{ color: TOKENS.mute }}
-                >
-                  Base MuRIL
-                </th>
-
-                <th
-                  className="text-right py-2 font-medium"
-                  style={{ color: TOKENS.mute }}
-                >
-                  MuRIL V2
-                </th>
-
-                <th
-                  className="text-right py-2 font-semibold"
-                  style={{ color: TOKENS.green }}
-                >
-                  MuRIL V3
-                </th>
-
-                <th
-                  className="text-right py-2 font-medium"
-                  style={{ color: TOKENS.mute }}
-                >
-                  E5-base
-                </th>
-
-                <th
-                  className="text-right py-2 font-medium"
-                  style={{ color: TOKENS.mute }}
-                >
-                  BGE-M3
-                </th>
+              <tr>
+                <th scope="col">Metric</th>
+                <th scope="col">Base MuRIL</th>
+                <th scope="col">MuRIL V2</th>
+                <th scope="col" className="col-ours">MuRIL V3</th>
+                <th scope="col">E5-base</th>
+                <th scope="col">BGE-M3</th>
               </tr>
             </thead>
 
             <tbody>
               {METRICS.map((m) => (
-                <tr
-                  key={m.metric}
-                  style={{
-                    borderBottom: `1px solid ${TOKENS.line}`,
-                  }}
-                >
-                  <td
-                    className="py-2.5"
-                    style={{ color: TOKENS.ink }}
-                  >
-                    {m.metric}
-                  </td>
-
-                  <td
-                    className="py-2.5 text-right"
-                    style={{
-                      color: TOKENS.mute,
-                      fontFamily:
-                        "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    {m.base}
-                  </td>
-
-                  <td
-                    className="py-2.5 text-right"
-                    style={{
-                      color: TOKENS.mute,
-                      fontFamily:
-                        "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    {m.v2}
-                  </td>
-
-                  <td
-                    className="py-2.5 text-right font-semibold"
-                    style={{
-                      color: TOKENS.green,
-                      fontFamily:
-                        "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    {m.v3}
-                  </td>
-
-                  <td
-                    className="py-2.5 text-right"
-                    style={{
-                      color: TOKENS.mute,
-                      fontFamily:
-                        "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    {m.e5}
-                  </td>
-
-                  <td
-                    className="py-2.5 text-right"
-                    style={{
-                      color: TOKENS.mute,
-                      fontFamily:
-                        "'JetBrains Mono', monospace",
-                    }}
-                  >
-                    {m.bge}
-                  </td>
+                <tr key={m.metric}>
+                  <td>{m.metric}</td>
+                  <td>{m.base}</td>
+                  <td>{m.v2}</td>
+                  <td className="col-ours">{m.v3}</td>
+                  <td>{m.e5}</td>
+                  <td>{m.bge}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <p
-          className="text-xs mt-3"
-          style={{
-            color: TOKENS.mute,
-          }}
-        >
+        <p className="cmp-note">
           Higher is better. All models are evaluated
           on the same held-out agriculture retrieval set.
         </p>
-      </div>
+      </section>
     </div>
   );
 }
